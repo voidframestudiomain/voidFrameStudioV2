@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Starfield</title>
+<style>
+  :root{
+    --deep:#040201; --navy:#0c0503; --indigo:#160a04; --glow:#2a1004; --plum:#1c0a03;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html,body{ height:100%; overflow:hidden; background:var(--deep); cursor:crosshair; }
+  #sky{
+    position:fixed; inset:0; display:block;
+    background:
+      radial-gradient(80% 60% at 50% 50%, var(--glow) 0%, transparent 35%),
+      radial-gradient(70% 60% at 18% 28%, var(--plum) 0%, transparent 40%),
+      linear-gradient(160deg, var(--navy) 0%, var(--deep) 55%, #040201 100%);
+  }
+  .hint{
+    position:fixed; left:50%; bottom:22px; transform:translateX(-50%);
+    color:#ffc89a; font:13px/1.5 system-ui,sans-serif; letter-spacing:.04em;
+    opacity:.55; text-align:center; pointer-events:none; user-select:none;
+    transition:opacity .8s ease; z-index:3;
+  }
+</style>
+</head>
+<body>
+  <canvas id="sky"></canvas>
+  <div class="hint" id="hint">move to draw constellations &nbsp;·&nbsp; click for a shooting star</div>
+<script>
+const cv = document.getElementById('sky');
+const ctx = cv.getContext('2d');
+const hint = document.getElementById('hint');
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let W, H, DPR;
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = cv.width  = innerWidth  * DPR;
+  H = cv.height = innerHeight * DPR;
+  cv.style.width = innerWidth + 'px';
+  cv.style.height = innerHeight + 'px';
+  buildStars();
+}
+addEventListener('resize', resize);
+
+// orange ember palette
+const palette = ['#ffd9a0','#ffb14e','#ff8c2b','#ffcf7a','#fff0d6','#ff6a1a'];
+
+let stars = [];
+function buildStars(){
+  stars = [];
+  const count = Math.round((innerWidth*innerHeight) / 4200); // density scales with screen
+  for(let i=0;i<count;i++){
+    const depth = Math.random();           // 0 = far, 1 = near
+    stars.push({
+      x: Math.random()*W,
+      y: Math.random()*H,
+      r: (depth*2.4 + 0.5) * DPR,          // nearer = bigger
+      depth,
+      color: palette[(Math.random()*palette.length)|0],
+      tw: Math.random()*Math.PI*2,         // twinkle phase
+      twSpeed: 0.5 + Math.random()*1.8
+    });
+  }
+}
+
+// pointer
+const mouse = { x: -9999, y: -9999, px:0, py:0, active:false };
+addEventListener('mousemove', e=>{
+  mouse.x = e.clientX*DPR; mouse.y = e.clientY*DPR; mouse.active = true;
+  // smooth target for parallax (normalised -1..1)
+  mouse.px = (e.clientX/innerWidth - .5)*2;
+  mouse.py = (e.clientY/innerHeight - .5)*2;
+  if(hint){ hint.style.opacity = 0; }
+});
+addEventListener('mouseleave', ()=> mouse.active=false );
+
+// touch support
+addEventListener('touchmove', e=>{
+  const t=e.touches[0]; mouse.x=t.clientX*DPR; mouse.y=t.clientY*DPR; mouse.active=true;
+  mouse.px=(t.clientX/innerWidth-.5)*2; mouse.py=(t.clientY/innerHeight-.5)*2;
+  if(hint) hint.style.opacity=0;
+},{passive:true});
+
+// shooting stars on click / tap
+let shooters = [];
+function launchShooter(x,y,angle){
+  // if no angle given, pick a fully random direction
+  const ang = (angle!==undefined) ? angle : Math.random()*Math.PI*2;
+  const speed = (9 + Math.random()*8) * DPR;
+  shooters.push({ x, y, vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed, life:1, len: (80+Math.random()*90)*DPR });
+}
+// clicks keep the natural down-left streak
+addEventListener('click', e=> launchShooter(e.clientX*DPR, e.clientY*DPR, Math.PI*0.75 + (Math.random()-.5)*0.5));
+addEventListener('touchstart', e=>{ const t=e.touches[0]; launchShooter(t.clientX*DPR,t.clientY*DPR, Math.PI*0.75 + (Math.random()-.5)*0.5); },{passive:true});
+
+// smoothed parallax offset
+let offX=0, offY=0;
+
+function frame(t){
+  ctx.clearRect(0,0,W,H);
+
+  // ease parallax toward the pointer
+  const tx = -mouse.px * 26 * DPR;
+  const ty = -mouse.py * 26 * DPR;
+  offX += (tx-offX)*0.05;
+  offY += (ty-offY)*0.05;
+
+  const linkDist = 110 * DPR;          // distance for constellation lines
+  const linkDist2 = linkDist*linkDist;
+  const time = t*0.001;
+
+  // draw stars
+  const near = [];                      // stars close to cursor, for linking
+  for(const s of stars){
+    const dx = s.depth*offX;            // nearer stars move more
+    const dy = s.depth*offY;
+    const sx = s.x + dx, sy = s.y + dy;
+
+    // base twinkle
+    let alpha = 0.55 + Math.sin(time*s.twSpeed + s.tw)*0.45;
+    let radius = s.r * (0.85 + (alpha-0.55)*0.5);
+
+    // pointer proximity -> brighten + grow
+    let prox = 0;
+    if(mouse.active){
+      const mdx = sx-mouse.x, mdy = sy-mouse.y;
+      const d2 = mdx*mdx + mdy*mdy;
+      if(d2 < linkDist2){
+        prox = 1 - Math.sqrt(d2)/linkDist;
+        alpha = Math.min(1, alpha + prox*0.8);
+        radius += prox*2.2*DPR;
+        near.push({x:sx, y:sy, prox});
+      }
+    }
+
+    ctx.beginPath();
+    ctx.arc(sx, sy, radius, 0, Math.PI*2);
+    ctx.fillStyle = s.color;
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = 'rgba(255,150,40,.9)';
+    ctx.shadowBlur = radius*4;
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+
+  // constellation lines between stars near the cursor
+  for(let i=0;i<near.length;i++){
+    for(let j=i+1;j<near.length;j++){
+      const a=near[i], b=near[j];
+      const dx=a.x-b.x, dy=a.y-b.y, d2=dx*dx+dy*dy;
+      if(d2 < linkDist2){
+        const o = (1 - Math.sqrt(d2)/linkDist) * Math.min(a.prox,b.prox);
+        if(o<=0) continue;
+        ctx.strokeStyle = 'rgba(255,180,90,'+(o*0.5)+')';
+        ctx.lineWidth = DPR;
+        ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+      }
+    }
+  }
+
+  // glow that follows the cursor
+  if(mouse.active){
+    const g = ctx.createRadialGradient(mouse.x,mouse.y,0, mouse.x,mouse.y, 120*DPR);
+    g.addColorStop(0,'rgba(255,140,40,.22)');
+    g.addColorStop(1,'rgba(255,140,40,0)');
+    ctx.fillStyle=g;
+    ctx.fillRect(mouse.x-120*DPR, mouse.y-120*DPR, 240*DPR, 240*DPR);
+  }
+
+  // shooting stars
+  for(const sh of shooters){
+    sh.x += sh.vx; sh.y += sh.vy; sh.life -= 0.012;
+    const tailX = sh.x - sh.vx/Math.hypot(sh.vx,sh.vy)*sh.len;
+    const tailY = sh.y - sh.vy/Math.hypot(sh.vx,sh.vy)*sh.len;
+    const grad = ctx.createLinearGradient(sh.x,sh.y, tailX,tailY);
+    grad.addColorStop(0,'rgba(255,230,200,'+Math.max(0,sh.life)+')');
+    grad.addColorStop(1,'rgba(255,140,40,0)');
+    ctx.strokeStyle=grad; ctx.lineWidth=2.2*DPR; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(sh.x,sh.y); ctx.lineTo(tailX,tailY); ctx.stroke();
+    ctx.beginPath(); ctx.arc(sh.x,sh.y,2*DPR,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,'+Math.max(0,sh.life)+')'; ctx.fill();
+  }
+  shooters = shooters.filter(s=> s.life>0 && s.x>-150 && s.x<W+150 && s.y>-150 && s.y<H+150);
+
+  requestAnimationFrame(frame);
+}
+
+resize();
+if(reduce){
+  // static-ish render for reduced motion
+  ctx.clearRect(0,0,W,H);
+  for(const s of stars){
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    ctx.fillStyle=s.color; ctx.globalAlpha=.8;
+    ctx.shadowColor='rgba(255,150,40,.8)'; ctx.shadowBlur=s.r*3; ctx.fill();
+  }
+} else {
+  requestAnimationFrame(frame);
+}
+
+// ambient shooting stars at random intervals, positions and directions
+function scheduleShooter(){
+  if(reduce) return;
+  const delay = 1500 + Math.random()*5000;   // 1.5s – 6.5s apart, irregular
+  setTimeout(()=>{
+    const x = Math.random()*W;                // anywhere on screen
+    const y = Math.random()*H;
+    launchShooter(x, y);                       // random direction (no angle arg)
+    scheduleShooter();                         // queue the next one
+  }, delay);
+}
+scheduleShooter();
+</script>
+</body>
+</html>

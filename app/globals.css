@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --font-family-sans: var(--font-pp-mori), sans-serif;
+  --font-family-display: var(--font-anton), sans-serif;
+
+  --color-void: #0a0a0a;
+  --color-surface: #111111;
+  --color-border: #1f1f1f;
+  --color-muted: #71717a;
+  --color-accent: #e8e0d0;
+  /* Page background — referenced as bg-bg / text-bg via Tailwind, or
+     var(--color-bg) directly, instead of hardcoding #ffe500 elsewhere. */
+  --color-bg: #ffe500;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family-sans);
+  font-weight: 400;
+  background-color: var(--color-bg);
+  color: #e8e0d0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  /* background: #e8e0d0; */
+  background-color: var(--color-bg);
+  color: #0a0a0a;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1f1f1f;
+}
