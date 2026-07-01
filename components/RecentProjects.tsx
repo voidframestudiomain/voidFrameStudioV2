@@ -18,19 +18,20 @@ const CONFIG = {
   // Left/right page-edge inset, both collapsed and expanded states.
   EDGE_MARGIN_X: 0,
 
-  // Bottom offset for the COLLAPSED thumbnail row only. Tune this freely —
-  // it no longer affects the info bar, so shrinking it to fix "cropped"
-  // collapsed thumbnails won't cause overlap later.
-  COLLAPSED_MARGIN_Y: 80,
+  // Gap between the top of the expanded row and the "( Selected Projects )"
+  // heading that sits above it.
+  HEADING_GAP: 24,
 
-  // Bottom offset for the info bar (name/category/link). Fixed — it never
-  // moves with scroll progress. Independent of COLLAPSED_MARGIN_Y.
-  INFO_MARGIN_Y: 90,
+  // Fixed distance from the bottom of the screen to the info bar
+  // (name/category/link). The row is vertically CENTERED independently of
+  // this, so the two can never collide regardless of EXPANDED_HEIGHT.
+  INFO_MARGIN_Y: 10,
 
-  // Minimum breathing room between the bottom of the expanded row and the
-  // top of the info bar's (measured) content. This is the ONLY manual
-  // number left — the actual offset is computed from real content height.
-  ROW_INFO_GAP: 32,
+  // Fixed distance from the bottom of the screen to the thumbnail row
+  // while COLLAPSED (start of scroll). Kept separate from INFO_MARGIN_Y
+  // (which is much smaller) so the collapsed thumbnails have real
+  // breathing room instead of sitting flush against the screen edge.
+  COLLAPSED_BOTTOM_MARGIN: 80,
 
   // Size of each thumbnail in the COLLAPSED (start of scroll) state.
   COLLAPSED_THUMB_SIZE: 96,
@@ -140,9 +141,7 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
   const [activeId, setActiveId] = useState<string>(projects[0].id);
   const [progress, setProgress] = useState(0); // 0 = top of section, 1 = fully scrolled through
   const [containerWidth, setContainerWidth] = useState(0);
-  const [infoHeight, setInfoHeight] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
-  const infoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Measure the SECTION's own width, not window.innerWidth.
@@ -180,21 +179,6 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Track the info bar's REAL rendered height (it changes as the active
-  // project's name/description length changes and wraps differently), so
-  // the expanded row can always leave exactly enough clearance for it —
-  // no more hardcoded EXPANDED_BOTTOM_OFFSET guesswork.
-  useEffect(() => {
-    const el = infoRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const h = entries[0]?.contentRect.height ?? 0;
-      setInfoHeight(h);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
   if (!containerWidth) {
     return <div ref={sectionRef} style={{ height: `${CONFIG.SECTION_HEIGHT_VH}vh` }} />;
   }
@@ -209,11 +193,6 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
     (projects.length - 1) * CONFIG.THUMB_GAP;
   const expandedWidth = containerWidth - CONFIG.EDGE_MARGIN_X * 2;
 
-  // Expanded bottom offset = however far the info bar sits from the page
-  // bottom, plus its actual measured height, plus a breathing gap. This is
-  // what guarantees no overlap regardless of description length/wrapping.
-  const expandedBottomOffset = CONFIG.INFO_MARGIN_Y + infoHeight + CONFIG.ROW_INFO_GAP;
-
   // ⚠️ Everything below is scroll-driven (recalculated every scroll tick),
   // so these stay as plain inline styles with NO CSS transition attached.
   // If you add a `transition` to width/height/left/bottom, every scroll
@@ -224,16 +203,37 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
   const rowLeft = Math.round(
     lerp(containerWidth - CONFIG.EDGE_MARGIN_X - collapsedWidth, CONFIG.EDGE_MARGIN_X, progress)
   );
-  const rowBottom = Math.round(lerp(CONFIG.COLLAPSED_MARGIN_Y, expandedBottomOffset, progress));
+
+  // The row's bottom edge is interpolated between two anchors as `progress`
+  // goes 0 -> 1:
+  //   - collapsed (progress 0): anchored a fixed distance from the bottom
+  //     of the screen (CONFIG.INFO_MARGIN_Y), so thumbnails sit at the
+  //     bottom of the viewport at the start of the scroll.
+  //   - expanded (progress 1): anchored to dead-center (50% - half its own
+  //     height), so it grows outward from the middle of the screen.
+  // Both anchors are blended in a single CSS calc() that mixes a
+  // percentage term (for the center anchor) with a px term (for the fixed
+  // bottom-margin anchor), so the row smoothly rises from the bottom edge
+  // to dead-center as you scroll, instead of always being centered.
+  const rowBottomPercent = progress * 50;
+  const rowBottomPxPart =
+    (1 - progress) * CONFIG.COLLAPSED_BOTTOM_MARGIN - progress * (rowHeight / 2);
+  const rowBottom = `calc(${rowBottomPercent}% + ${rowBottomPxPart}px)`;
+
+  // Heading sits just above the row's (interpolated) top edge, tracking it
+  // as the row grows and moves — always clear of the row no matter its
+  // height or current bottom anchor.
+  const headingBottomPxPart = rowBottomPxPart + rowHeight + CONFIG.HEADING_GAP;
+  const headingBottom = `calc(${rowBottomPercent}% + ${headingBottomPxPart}px)`;
 
   return (
     <div ref={sectionRef} style={{ height: `${CONFIG.SECTION_HEIGHT_VH}vh` }} className="relative">
       <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {/* ── Heading: tracks the row's top edge, fades in once mostly expanded ── */}
+        {/* ── Heading: tracks the row's (centered) top edge, fades in once mostly expanded ── */}
         <div
           className="absolute inset-x-0 z-10 flex"
           style={{
-            bottom: rowBottom + rowHeight + 24,
+            bottom: headingBottom,
             left: rowLeft,
             width: rowWidth,
             justifyContent: progress > 0.5 ? "center" : "flex-end",
@@ -246,7 +246,9 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
           </span>
         </div>
 
-        {/* ── Thumbnail row: scroll-driven size/position, no CSS transition ── */}
+        {/* ── Thumbnail row: scroll-driven size/position, no CSS transition.
+            Starts anchored to the bottom of the viewport, then rises to
+            dead-center as it expands, via the interpolated rowBottom. ── */}
         <div
           className="absolute z-[5] flex gap-2"
           style={{ left: rowLeft, width: rowWidth, height: rowHeight, bottom: rowBottom }}
@@ -299,13 +301,11 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
           })}
         </div>
 
-        {/* ── Info bar: name/category bottom-left, live link bottom-right ──
-            Positioned/sized to track the row's own left edge + width so it
-            stays aligned with the expanded row at any viewport size. Its
-            own height is measured (infoRef) and fed back into the row's
-            expanded bottom offset above, so the two can never overlap. */}
+        {/* ── Info bar: name/category bottom-left, live link bottom-right.
+            Fixed a constant distance from the bottom of the screen —
+            completely independent of the row now, so it can never overlap
+            it regardless of EXPANDED_HEIGHT or viewport size. ── */}
         <div
-          ref={infoRef}
           className="pointer-events-none absolute flex items-end justify-between "
           style={{
             left: rowLeft + CONFIG.INFO_MARGIN_X,
