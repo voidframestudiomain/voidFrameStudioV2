@@ -6,6 +6,8 @@ import Hero from "@/components/Hero";
 import RecentProjects from "@/components/RecentProjects";
 import Workflow from "@/components/Workflow";
 import Contact from "@/components/Contactus";
+import About from "@/components/About";
+import FunFact from "@/components/Funfact";
 
 export default function Home() {
   // Single source of truth for RecentProjects' scroll-driven progress
@@ -21,7 +23,10 @@ export default function Home() {
 
       <RecentProjects onProgress={setProjectsProgress} />
       <Workflow />
+       <FunFact />
       <Contact />
+      <About />
+     
 
 
     </main>
