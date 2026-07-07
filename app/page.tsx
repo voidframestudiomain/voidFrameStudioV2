@@ -4,6 +4,8 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import RecentProjects from "@/components/RecentProjects";
+import Workflow from "@/components/Workflow";
+import Contact from "@/components/Contactus";
 
 export default function Home() {
   // Single source of truth for RecentProjects' scroll-driven progress
@@ -18,6 +20,10 @@ export default function Home() {
       <Hero projectsProgress={projectsProgress} />
 
       <RecentProjects onProgress={setProjectsProgress} />
+      <Workflow />
+      <Contact />
+
+
     </main>
   );
 }
