@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 
 const projects = [
@@ -13,66 +13,35 @@ const projects = [
 // ─────────────────────────────────────────────────────────────────────────
 // 🎛️ TWEAK EVERYTHING HERE. Nothing below this block needs to change for
 // normal sizing/spacing/timing adjustments.
+//
+// NOTE: SECTION_HEIGHT_VH used to live here — it's been REMOVED because
+// this component no longer owns its own scroll-height wrapper or scroll
+// listener. It's now a CONTROLLED component: the parent (page.tsx) tracks
+// one combined scroll track for RecentProjects + HowWeWork together, and
+// passes this component its own `progress` (0–1) and `containerWidth` as
+// props every tick.
 // ─────────────────────────────────────────────────────────────────────────
 const CONFIG = {
-  // Left/right page-edge inset, both collapsed and expanded states.
   EDGE_MARGIN_X: 0,
-
-  // Gap between the top of the expanded row and the "( Selected Projects )"
-  // heading that sits above it.
   HEADING_GAP: 24,
-
-  // Fixed distance from the bottom of the screen to the info bar
-  // (name/category/link). The row is vertically CENTERED independently of
-  // this, so the two can never collide regardless of EXPANDED_HEIGHT.
-  INFO_MARGIN_Y: 10,
-
-  // Fixed distance from the bottom of the screen to the thumbnail row
-  // while COLLAPSED (start of scroll). Kept separate from INFO_MARGIN_Y
-  // (which is much smaller) so the collapsed thumbnails have real
-  // breathing room instead of sitting flush against the screen edge.
+  INFO_MARGIN_Y: 40,
   COLLAPSED_BOTTOM_MARGIN: 80,
-
-  // Size of each thumbnail in the COLLAPSED (start of scroll) state.
   COLLAPSED_THUMB_SIZE: 96,
-
-  // Gap between thumbnails, in both collapsed and expanded states.
   THUMB_GAP: 8,
-
-  // Height of the row once fully EXPANDED (end of scroll).
   EXPANDED_HEIGHT: 440,
-
-  // Scroll progress (0–1) at which the "( Selected Projects )" heading
-  // starts/finishes fading in. Must happen AFTER the row is mostly expanded.
   HEADING_FADE_START: 0.35,
   HEADING_FADE_END: 0.65,
-
-  // Scroll progress (0–1) at which the bottom info bar (project name +
-  // category / live link) starts/finishes fading in.
   INFO_FADE_START: 0.6,
   INFO_FADE_END: 1.0,
-
-  // Horizontal inset for the info bar's left/right columns, relative to
-  // the row's own left/width. Kept at 0 so it's flush with the row edges —
-  // x-axis spacing is already handled by the parent page.tsx.
   INFO_MARGIN_X: 0,
-
-  // How much taller the hovered card grows relative to its neighbors,
-  // expressed as flex-grow ratios. Bigger HOVERED number = more dramatic
-  // expansion on hover.
-  FLEX_GROW_DEFAULT: 1, // all cards, no hover
-  FLEX_GROW_HOVERED: 2.4, // the card under the cursor
-  FLEX_GROW_SIBLING: 0.6, // the other cards while one is hovered
-
-  // Total scroll-able height of this section, in viewport-heights (vh).
-  // Bigger = slower / longer scroll-driven animation.
-  SECTION_HEIGHT_VH: 160,
+  FLEX_GROW_DEFAULT: 1,
+  FLEX_GROW_HOVERED: 2.4,
+  FLEX_GROW_SIBLING: 0.6,
 };
 // ─────────────────────────────────────────────────────────────────────────
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
-// Remaps t from [start, end] -> [0, 1], clamped. Used for the fade-in ranges above.
 const remap = (t: number, start: number, end: number) =>
   clamp01((t - start) / (end - start));
 
@@ -124,14 +93,19 @@ function ScrambleText({ text }: { text: string }) {
 }
 
 interface RecentProjectsProps {
-  // Fires on every scroll tick with the same 0–1 progress value that
-  // drives the row's own expansion. Lets siblings (e.g. Hero) sync their
-  // own animations to this section without each maintaining a separate
-  // scroll listener / getBoundingClientRect calculation.
-  onProgress?: (progress: number) => void;
+  // Driven by the PARENT now (page.tsx), which owns one combined scroll
+  // track for RecentProjects + HowWeWork. 0 = fully collapsed thumbnails,
+  // 1 = fully expanded row. The parent freezes this at 1 once it moves on
+  // to animating HowWeWork's slide-in.
+  progress: number;
+
+  // The parent measures its own sticky container's width (not
+  // window.innerWidth, which includes the scrollbar gutter) and passes it
+  // down, since this component no longer has its own ref to measure from.
+  containerWidth: number;
 }
 
-export default function RecentProjects({ onProgress }: RecentProjectsProps = {}) {
+export default function RecentProjects({ progress, containerWidth }: RecentProjectsProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   // Tracks which project's info should be shown in the bottom bar. Unlike
   // hoveredId (which drives the card-grow effect and resets to null on
@@ -139,49 +113,8 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
   // hovered — it starts on the first project and simply stays there until
   // the user hovers a different card.
   const [activeId, setActiveId] = useState<string>(projects[0].id);
-  const [progress, setProgress] = useState(0); // 0 = top of section, 1 = fully scrolled through
-  const [containerWidth, setContainerWidth] = useState(0);
-  const sectionRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Measure the SECTION's own width, not window.innerWidth.
-    // window.innerWidth includes the scrollbar gutter, which makes the row
-    // think it has more horizontal room than it actually does — that's what
-    // was clipping the last card against the real edge.
-    const measure = () => {
-      if (sectionRef.current) setContainerWidth(sectionRef.current.clientWidth);
-    };
-    measure();
-    window.addEventListener("resize", measure);
-
-    let raf = 0;
-    const onScroll = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        const el = sectionRef.current;
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        const scrollableDistance = rect.height - window.innerHeight;
-        const next = clamp01(-rect.top / scrollableDistance);
-        setProgress(next);
-        onProgress?.(next);
-      });
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", measure);
-      if (raf) cancelAnimationFrame(raf);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (!containerWidth) {
-    return <div ref={sectionRef} style={{ height: `${CONFIG.SECTION_HEIGHT_VH}vh` }} />;
-  }
+  if (!containerWidth) return null;
 
   const active = projects.find((p) => p.id === activeId) ?? projects[0];
 
@@ -211,10 +144,6 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
   //     bottom of the viewport at the start of the scroll.
   //   - expanded (progress 1): anchored to dead-center (50% - half its own
   //     height), so it grows outward from the middle of the screen.
-  // Both anchors are blended in a single CSS calc() that mixes a
-  // percentage term (for the center anchor) with a px term (for the fixed
-  // bottom-margin anchor), so the row smoothly rises from the bottom edge
-  // to dead-center as you scroll, instead of always being centered.
   const rowBottomPercent = progress * 50;
   const rowBottomPxPart =
     (1 - progress) * CONFIG.COLLAPSED_BOTTOM_MARGIN - progress * (rowHeight / 2);
@@ -227,118 +156,116 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
   const headingBottom = `calc(${rowBottomPercent}% + ${headingBottomPxPart}px)`;
 
   return (
-    <div ref={sectionRef} style={{ height: `${CONFIG.SECTION_HEIGHT_VH}vh` }} className="relative">
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {/* ── Heading: tracks the row's (centered) top edge, fades in once mostly expanded ── */}
-        <div
-          className="absolute inset-x-0 z-10 flex"
-          style={{
-            bottom: headingBottom,
-            left: rowLeft,
-            width: rowWidth,
-            justifyContent: progress > 0.5 ? "center" : "flex-end",
-            opacity: headingOpacity,
-            transform: `translateY(${lerp(12, 0, headingOpacity)}px)`,
-          }}
-        >
-          <span className="whitespace-nowrap text-xs uppercase tracking-[0.2em] text-black">
-            ( Selected Projects )
-          </span>
-        </div>
+    <>
+      {/* ── Heading: tracks the row's (centered) top edge, fades in once mostly expanded ── */}
+      <div
+        className="absolute inset-x-0 z-10 flex"
+        style={{
+          bottom: headingBottom,
+          left: rowLeft,
+          width: rowWidth,
+          justifyContent: progress > 0.5 ? "center" : "flex-end",
+          opacity: headingOpacity,
+          transform: `translateY(${lerp(12, 0, headingOpacity)}px)`,
+        }}
+      >
+        <span className="whitespace-nowrap text-xs uppercase tracking-[0.2em] text-black">
+          ( Selected Projects )
+        </span>
+      </div>
 
-        {/* ── Thumbnail row: scroll-driven size/position, no CSS transition.
-            Starts anchored to the bottom of the viewport, then rises to
-            dead-center as it expands, via the interpolated rowBottom. ── */}
-        <div
-          className="absolute z-[5] flex gap-2"
-          style={{ left: rowLeft, width: rowWidth, height: rowHeight, bottom: rowBottom }}
-        >
-          {projects.map((project) => {
-            const isHovered = hoveredId === project.id;
-            const isActive = activeId === project.id;
-            const flexGrow =
-              progress < 0.05
-                ? CONFIG.FLEX_GROW_DEFAULT // ignore hover/active while still fully collapsed
-                : isActive
-                ? CONFIG.FLEX_GROW_HOVERED
-                : CONFIG.FLEX_GROW_SIBLING;
+      {/* ── Thumbnail row: scroll-driven size/position, no CSS transition.
+          Starts anchored to the bottom of the viewport, then rises to
+          dead-center as it expands, via the interpolated rowBottom. ── */}
+      <div
+        className="absolute z-[5] flex gap-2"
+        style={{ left: rowLeft, width: rowWidth, height: rowHeight, bottom: rowBottom }}
+      >
+        {projects.map((project) => {
+          const isHovered = hoveredId === project.id;
+          const isActive = activeId === project.id;
+          const flexGrow =
+            progress < 0.05
+              ? CONFIG.FLEX_GROW_DEFAULT // ignore hover/active while still fully collapsed
+              : isActive
+              ? CONFIG.FLEX_GROW_HOVERED
+              : CONFIG.FLEX_GROW_SIBLING;
 
-            return (
+          return (
+            <div
+              key={project.id}
+              onMouseEnter={() => {
+                setHoveredId(project.id);
+                setActiveId(project.id);
+              }}
+              onMouseLeave={() => setHoveredId(null)}
+              // flex-grow IS allowed a transition — it only changes on
+              // discrete hover events, not on every scroll tick.
+              className="relative h-full min-w-0 shrink-0 basis-0 cursor-pointer overflow-hidden rounded transition-[flex-grow] duration-500 ease-out"
+              style={{ flexGrow }}
+            >
+              <Image
+                src={project.image}
+                alt={project.name}
+                fill
+                sizes="(max-width: 768px) 50vw, 25vw"
+                className={`object-cover transition-transform duration-500 ease-out ${
+                  isHovered ? "scale-105" : "scale-100"
+                }`}
+              />
+              {/* darkening gradient fades in as the row expands */}
               <div
-                key={project.id}
-                onMouseEnter={() => {
-                  setHoveredId(project.id);
-                  setActiveId(project.id);
-                }}
-                onMouseLeave={() => setHoveredId(null)}
-                // flex-grow IS allowed a transition — it only changes on
-                // discrete hover events, not on every scroll tick.
-                className="relative h-full min-w-0 shrink-0 basis-0 cursor-pointer overflow-hidden rounded transition-[flex-grow] duration-500 ease-out"
-                style={{ flexGrow }}
+                className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"
+                style={{ opacity: progress }}
+              />
+              <span
+                className="absolute left-3 top-3 text-[10px] tracking-widest text-white/70"
+                style={{ opacity: progress }}
               >
-                <Image
-                  src={project.image}
-                  alt={project.name}
-                  fill
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                  className={`object-cover transition-transform duration-500 ease-out ${
-                    isHovered ? "scale-105" : "scale-100"
-                  }`}
-                />
-                {/* darkening gradient fades in as the row expands */}
-                <div
-                  className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"
-                  style={{ opacity: progress }}
-                />
-                <span
-                  className="absolute left-3 top-3 text-[10px] tracking-widest text-white/70"
-                  style={{ opacity: progress }}
-                >
-                  {project.id}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── Info bar: name/category bottom-left, live link bottom-right.
-            Fixed a constant distance from the bottom of the screen —
-            completely independent of the row now, so it can never overlap
-            it regardless of EXPANDED_HEIGHT or viewport size. ── */}
-        <div
-          className="pointer-events-none absolute flex items-end justify-between "
-          style={{
-            left: rowLeft + CONFIG.INFO_MARGIN_X,
-            width: Math.max(rowWidth - CONFIG.INFO_MARGIN_X * 2, 0),
-            bottom: CONFIG.INFO_MARGIN_Y,
-            opacity: infoOpacity,
-            transform: `translateY(${lerp(20, 0, infoOpacity)}px)`,
-          }}
-        >
-          {/* Bottom-left: project name + category + a scramble-revealed blurb */}
-          <div className="flex max-w-xl flex-col gap-1 ">
-            <div className="flex items-baseline gap-4">
-              <p className="font-display text-3xl font-black uppercase text-black">{active.name}</p>
-              <p className="text-xs uppercase tracking-widest text-black/60">
-                {active.category} — {active.year}
-              </p>
+                {project.id}
+              </span>
             </div>
-            <p className="font-mono text-xs leading-relaxed text-black/50">
-              <ScrambleText text={active.description} />
+          );
+        })}
+      </div>
+
+      {/* ── Info bar: name/category bottom-left, live link bottom-right.
+          Fixed a constant distance from the bottom of the screen —
+          completely independent of the row now, so it can never overlap
+          it regardless of EXPANDED_HEIGHT or viewport size. ── */}
+      <div
+        className="pointer-events-none absolute flex items-end justify-between "
+        style={{
+          left: rowLeft + CONFIG.INFO_MARGIN_X,
+          width: Math.max(rowWidth - CONFIG.INFO_MARGIN_X * 2, 0),
+          bottom: CONFIG.INFO_MARGIN_Y,
+          opacity: infoOpacity,
+          transform: `translateY(${lerp(20, 0, infoOpacity)}px)`,
+        }}
+      >
+        {/* Bottom-left: project name + category + a scramble-revealed blurb */}
+        <div className="flex max-w-xl flex-col gap-1 ">
+          <div className="flex items-baseline gap-4">
+            <p className="font-display text-3xl font-black uppercase text-black">{active.name}</p>
+            <p className="text-xs uppercase tracking-widest text-black/60">
+              {active.category} — {active.year}
             </p>
           </div>
-
-          {/* Bottom-right: live link */}
-          <a
-            href={`https://${active.link}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="pointer-events-auto whitespace-nowrap text-xs uppercase tracking-widest text-black/60 underline decoration-black/40 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
-          >
-            {active.link} ↗
-          </a>
+          <p className="font-mono text-xs leading-relaxed text-black/50">
+            <ScrambleText text={active.description} />
+          </p>
         </div>
+
+        {/* Bottom-right: live link */}
+        <a
+          href={`https://${active.link}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="pointer-events-auto whitespace-nowrap text-xs uppercase tracking-widest text-black/60 underline decoration-black/40 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
+        >
+          {active.link} ↗
+        </a>
       </div>
-    </div>
+    </>
   );
 }
