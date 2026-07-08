@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 const steps = [
   {
     id: "01",
@@ -30,6 +32,10 @@ const CONFIG = {
   PANEL_BG: "#0a0a0a", // starting (black) background while the panel is still sliding in
   ACCENT: "#ffe500", // ⚠️ PLACEHOLDER — swap for your actual yellow hex from the rest of the site
 
+  // ⚠️ PLACEHOLDER — one poppy cover color per strap, picked to punch
+  // against ACCENT without fighting it. Order matches `steps`.
+  STRAP_COLORS: ["#FF3B5C", "#2F6BFF", "#FF8A00", "#9B30FF"],
+
   // How far past 0 progress must get before the panel starts accepting
   // clicks/hovers. Keeps it from swallowing interactions with
   // RecentProjects while still sitting off-screen at translateX(100%).
@@ -48,12 +54,9 @@ const CONFIG = {
   // Thickness of the divider between straps.
   STRAP_BORDER_WIDTH: 3,
 
-  // Torn-edge look on each strap's cover. TEETH = how many zigzag points
-  // down the height of one strap (more = finer tear). JAG = how far the
-  // zigzag punches in, in % of the strap's own width (bigger = rougher/
-  // more dramatic tear).
-  TEETH: 10,
-  JAG: 3,
+  // Extra tear progress added on hover, on top of whatever scroll gave it.
+  // Purely a "reactive peel" nudge — doesn't replace the scroll-driven value.
+  HOVER_PEEL_BOOST: 0.18,
 };
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -83,37 +86,21 @@ function lerpColor(hexA: string, hexB: string, t: number): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-// Builds a clip-path polygon with a jagged LEFT edge and a clean straight
-// RIGHT edge. Used on each strap's "cover" div: the cover sits on top of
-// the strap's real content, colored the same as the current background,
-// and is scaled horizontally from a fixed RIGHT anchor — so as it shrinks,
-// the jagged left edge is the one doing the "tearing", while the right
-// edge stays pinned in place. That reads as a strip being ripped away
-// left-to-right rather than a plain rectangle sliding off.
-function tornLeftEdgeClipPath(teeth: number, jag: number): string {
-  const points: string[] = [];
-  for (let i = 0; i <= teeth; i++) {
-    const y = (i / teeth) * 100;
-    const x = i % 2 === 0 ? 0 : jag;
-    points.push(`${x}% ${y}%`);
-  }
-  points.push("100% 100%", "100% 0%");
-  return `polygon(${points.join(", ")})`;
-}
-
 interface HowWeWorkProps {
   // Drives the slide-in (off-screen -> covering the viewport) AND the
   // black->yellow color flip at its tail end. 0–1.
   progress: number;
 
-  // Drives the per-strap "torn cover peels away" reveal, AFTER progress
-  // has already reached 1 (panel fully in place, colors fully flipped).
-  // Internally split into 4 equal chunks, one per step, so straps reveal
-  // one at a time top-to-bottom as this climbs 0 -> 1.
+  // Drives the per-strap cover reveal, AFTER progress has already reached
+  // 1 (panel fully in place, colors fully flipped). Internally split into
+  // 4 equal chunks, one per step, so straps reveal one at a time
+  // top-to-bottom as this climbs 0 -> 1.
   stepsProgress: number;
 }
 
 export default function HowWeWork({ progress, stepsProgress }: HowWeWorkProps) {
+  const [hoveredStep, setHoveredStep] = useState<number | null>(null);
+
   const translateX = lerp(100, 0, progress); // 100% (off-screen right) -> 0% (covering viewport)
 
   const colorT = remap(progress, CONFIG.COLOR_FLIP_START, CONFIG.COLOR_FLIP_END);
@@ -123,8 +110,6 @@ export default function HowWeWork({ progress, stepsProgress }: HowWeWorkProps) {
   const mutedTextColor = lerpColor("#a3a3a3", "#000000", colorT);
   const dimTextColor = lerpColor("#737373", "#000000", colorT);
   const borderColor = lerpColor("#ffffff", "#000000", colorT);
-
-  const clipPath = tornLeftEdgeClipPath(CONFIG.TEETH, CONFIG.JAG);
 
   return (
     <div
@@ -156,46 +141,125 @@ export default function HowWeWork({ progress, stepsProgress }: HowWeWorkProps) {
           // Each strap gets an equal 1/4 slice of stepsProgress. Strap 0
           // reveals first, strap 3 last — same top-to-bottom order they're
           // stacked in.
-          const strapReveal = remap(stepsProgress, i / steps.length, (i + 1) / steps.length);
+          const scrollReveal = remap(stepsProgress, i / steps.length, (i + 1) / steps.length);
+
+          // Hover adds a bit of extra peel on top of the scroll value —
+          // doesn't override it, so scrolling further always still wins.
+          const strapReveal = clamp01(
+            scrollReveal + (hoveredStep === i ? CONFIG.HOVER_PEEL_BOOST : 0)
+          );
+
+          // The cover's own bg warms from its unique color into ACCENT as
+          // it goes — by the time it's fully gone, it would've been
+          // indistinguishable from the yellow underneath anyway.
+          const strapColor = CONFIG.STRAP_COLORS[i % CONFIG.STRAP_COLORS.length];
+          const coverBg = lerpColor(strapColor, CONFIG.ACCENT, strapReveal);
+
+          // Description lives only on the revealed layer, so it naturally
+          // doesn't show until the cover has mostly gone.
+          const descriptionOpacity = remap(strapReveal, 0.75, 1);
+
+          // Alternate wipe direction per strap: even straps' cover is
+          // anchored right and collapses toward the right, so the reveal
+          // sweeps left -> right, ending with the LAST remaining sliver of
+          // cover on the right — so the heading sits there, at the "end"
+          // of that motion. Odd straps do the mirror: anchored left,
+          // sweep right -> left, heading on the left.
+          const sweepsLeftToRight = i % 2 === 0;
+          const titleOnRight = sweepsLeftToRight;
+
+          // Shared layout for the id + title row — used identically on
+          // both the real (bottom) layer and the cover (top) layer, so
+          // the two copies land in EXACTLY the same spot. That's what
+          // sells the "reveal", not a duplicate: as the cover's black
+          // copy retracts, the real layer's copy underneath is already
+          // sitting there pixel-for-pixel, so nothing jumps or ghosts.
+          const headingRow = (color: string) => (
+            <div
+              className="flex items-center gap-8"
+              style={{ flexDirection: titleOnRight ? "row-reverse" : "row" }}
+            >
+              <h3
+                className="font-display text-3xl font-black uppercase shrink-0"
+                style={{ color }}
+              >
+                {step.title}
+              </h3>
+            </div>
+          );
 
           return (
             <div
               key={step.id}
-              className="relative flex items-center gap-8 overflow-hidden"
+              className="relative flex items-center overflow-hidden"
+              onMouseEnter={() => setHoveredStep(i)}
+              onMouseLeave={() => setHoveredStep((prev) => (prev === i ? null : prev))}
               style={{
                 height: CONFIG.STRAP_HEIGHT,
                 borderTop: i === 0 ? `${CONFIG.STRAP_BORDER_WIDTH}px solid ${borderColor}` : undefined,
                 borderBottom: `${CONFIG.STRAP_BORDER_WIDTH}px solid ${borderColor}`,
               }}
             >
-              {/* Real content — sits underneath the cover, revealed as the
-                  cover tears away. */}
-              <span className="font-mono text-sm shrink-0 w-12" style={{ color: dimTextColor }}>
+              {/* Real (bottom) layer — id pinned left, title/description
+                  swap sides via flex row-reverse so title always lands at
+                  the trailing edge of that strap's sweep direction. */}
+              <span className="shrink-0 w-12 font-mono text-sm" style={{ color: dimTextColor }}>
                 {step.id}
               </span>
-              <h3
-                className="font-display text-3xl font-black uppercase shrink-0 w-64"
-                style={{ color: textColor }}
-              >
-                {step.title}
-              </h3>
-              <p className="text-sm leading-relaxed max-w-md" style={{ color: mutedTextColor }}>
-                {step.description}
-              </p>
-
-              {/* The torn cover. Same color as the panel's current
-                  background, anchored to the RIGHT edge, scaled down from
-                  the left as strapReveal climbs — the jagged clip-path
-                  edge is what actually appears to "tear". */}
               <div
-                className="absolute inset-0 z-10"
+                className="flex flex-1 items-center gap-8"
                 style={{
-                  backgroundColor: bgColor,
-                  clipPath,
-                  transform: `scaleX(${1 - strapReveal})`,
-                  transformOrigin: "right center",
+                  flexDirection: titleOnRight ? "row-reverse" : "row",
+                  justifyContent: "space-between",
                 }}
-              />
+              >
+                <h3
+                  className="font-display text-3xl font-black uppercase shrink-0"
+                  style={{ color: textColor }}
+                >
+                  {step.title}
+                </h3>
+                <p
+                  className="text-sm leading-relaxed max-w-md transition-opacity duration-300"
+                  style={{ color: mutedTextColor, opacity: descriptionOpacity }}
+                >
+                  {step.description}
+                </p>
+              </div>
+
+              {/* The cover — the poppy colored plate, now carrying its own
+                  copy of the id + title in solid black, laid out via the
+                  exact same flex structure as the real layer above. As it
+                  scaleX's away, the black title on the cover slides off
+                  together with the color, and the real title underneath
+                  is revealed already in place — reads as one label peeling
+                  off, not two texts crossfading. */}
+              <div
+                className="absolute inset-0 z-10 flex items-center overflow-hidden"
+                style={{
+                  backgroundColor: coverBg,
+                  transform: `scaleX(${1 - strapReveal})`,
+                  transformOrigin: sweepsLeftToRight ? "right center" : "left center",
+                }}
+              >
+                <span className="shrink-0 w-12 font-mono text-sm" style={{ color: "#000000", opacity: 0.6 }}>
+                  {step.id}
+                </span>
+                <div
+                  className="flex flex-1 items-center gap-8"
+                  style={{
+                    flexDirection: titleOnRight ? "row-reverse" : "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <h3
+                    className="font-display text-3xl font-black uppercase shrink-0"
+                    style={{ color: "#000000" }}
+                  >
+                    {step.title}
+                  </h3>
+                </div>
+              </div>
             </div>
           );
         })}
