@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import RecentProjects from "@/components/RecentProjects";
 import HowWeWork from "@/components/HowWeWork";
+import Footer from "@/components/Footer";
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 const remap = (t: number, start: number, end: number) =>
@@ -99,7 +100,7 @@ export default function Home() {
   const stepsProgress = remap(rawProgress, SLIDE_END, 1);
 
   return (
-    <main className="min-h-screen flex flex-col px-[40px] py-10">
+    <main className="min-h-screen flex flex-col ">
       <Header />
       {/* Hero still syncs its own hide animation to the RecentProjects
           expansion phase specifically, so it gets recentProgress, not the
@@ -112,6 +113,7 @@ export default function Home() {
           <HowWeWork progress={slideProgress} stepsProgress={stepsProgress} />
         </div>
       </div>
+      <Footer/>
     </main>
   );
 }
