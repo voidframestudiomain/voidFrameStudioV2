@@ -8,6 +8,8 @@ import Workflow from "@/components/Workflow";
 import Contact from "@/components/Contactus";
 import About from "@/components/About";
 import FunFact from "@/components/Funfact";
+// import Cafehero from "@/components/Cafehero";
+// import CellHero from "@/components/CellHero";
 
 export default function Home() {
   // Single source of truth for RecentProjects' scroll-driven progress
@@ -26,6 +28,9 @@ export default function Home() {
        <FunFact />
       <Contact />
       <About />
+
+      {/* <Cafehero />
+      <CellHero /> */}
      
 
 
