@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import RecentProjects from "@/components/RecentProjects";
 import HowWeWork from "@/components/HowWeWork";
+import BridgeText from "@/components/BridgeText";
 import Footer from "@/components/Footer";
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
@@ -113,6 +114,7 @@ export default function Home() {
           <HowWeWork progress={slideProgress} stepsProgress={stepsProgress} />
         </div>
       </div>
+      <BridgeText />
       <Footer/>
     </main>
   );

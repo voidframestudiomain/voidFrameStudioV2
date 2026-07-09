@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /tmp/claude-501/-Users-vinaynain-voidframe/98bf2e27-c628-4c43-b460-d0bc73c0e783/scratchpad/page.html -w \"%{http_code}\" http://localhost:3000/)",
+      "Read(//tmp/claude-501/-Users-vinaynain-voidframe/98bf2e27-c628-4c43-b460-d0bc73c0e783/scratchpad/**)",
+      "Bash(curl -s -o /tmp/claude-501/-Users-vinaynain-voidframe/98bf2e27-c628-4c43-b460-d0bc73c0e783/scratchpad/p2.html -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(curl -s -o /tmp/claude-501/-Users-vinaynain-voidframe/98bf2e27-c628-4c43-b460-d0bc73c0e783/scratchpad/p3.html -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(curl -s -o /tmp/claude-501/-Users-vinaynain-voidframe/98bf2e27-c628-4c43-b460-d0bc73c0e783/scratchpad/p4.html -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(curl -s -o /tmp/claude-501/-Users-vinaynain-voidframe/98bf2e27-c628-4c43-b460-d0bc73c0e783/scratchpad/p5.html -w \"%{http_code}\" http://localhost:3000/)"
+    ]
+  }
+}

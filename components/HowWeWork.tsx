@@ -6,10 +6,14 @@
 const CONFIG = {
   BG: "#0a0a0a", // panel background — stays dark throughout, no color flip
 
-  GRID_LINE_COLOR: "rgba(255,255,255,0.06)",
-  GRID_COLUMN_WIDTH: 96, // px between vertical grid lines
+  // ── Modular grid ─────────────────────────────────────────────────────
+  // The vertical rules are NO LONGER a fixed-px repeating gradient — they're
+  // drawn from the SAME 24-column CSS grid the content is laid out on, so
+  // labels/cards/copy always land exactly on a line at every viewport width.
+  GRID_COLUMNS: 24,
+  GRID_LINE_COLOR: "rgba(255,255,255,0.10)", // a touch brighter than before
 
-  EYEBROW_COLOR: "rgba(255,255,255,0.55)",
+  LABEL_COLOR: "rgba(255,255,255,0.92)", // "Our Services" / "Est. 2008©"
   BODY_COLOR: "rgba(255,255,255,0.72)",
 
   // How far past 0 progress must get before the panel starts accepting
@@ -26,21 +30,28 @@ const CONFIG = {
   // ── Service cards ────────────────────────────────────────────────────
   CARD_BG: "rgba(255,255,255,0.035)",
   CARD_BORDER: "rgba(255,255,255,0.06)",
-  CARD_PADDING: "32px 28px",
-  CARD_MIN_HEIGHT: 460, // gives the tall, empty-below-title look from the ref
-  CARD_GAP: 4, // gutter between cards — bg shows through here
+  CARD_PADDING: "24px 22px",
 
   // ── Section spacing ─────────────────────────────────────────────────
-  SECTION_PADDING_X: 64, // px, desktop horizontal padding
-  SECTION_PADDING_Y: 80, // px, desktop vertical padding
-  HEADLINE_TO_SERVICES_GAP: 140, // px, space between headline block and "Our Services" bar
+  SECTION_PADDING_X: 40, // px, horizontal padding (edge margin, outside the lines)
+  SECTION_PADDING_TOP: 104, // px, clears the fixed header so the headline sits under it
+  SECTION_PADDING_BOTTOM: 56, // px
+  FIRST_LINE_INDENT: "12.5%", // indent on the headline's first line (per ref)
+
+  // ── Lower (services) block ──────────────────────────────────────────
+  HEADLINE_TO_SERVICES_GAP: 34, // px, gap between the headline and the lower block
+  LOWER_HEIGHT: 311, // px, fixed height of the whole lower block (labels + cards/copy)
+  LOWER_LABEL_GAP: 20, // px, gap between the "Our Services" labels row and the cards
+
+  // Headline is sized with a viewport-relative clamp (not a fixed px), so
+  // it always lands around the top half and leaves the bottom half for the
+  // cards + copy — the whole section fits in one screen like the reference.
+  // min / preferred(vw) / max.
+  HEADLINE_FONT: "clamp(1.5rem, 2.6vw, 2.5rem)",
 };
 // ─────────────────────────────────────────────────────────────────────────
 
-const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-const remap = (t: number, start: number, end: number) =>
-  clamp01((t - start) / (end - start));
 
 const HEADLINE =
   "We are an eCommerce agency. Not just execution, not isolated services. We provide brand direction, advanced tech, performance marketing and system integration as one connected approach. An end-to-end ecosystem designed to scale, perform and integrate seamlessly with existing platforms.";
@@ -66,19 +77,52 @@ interface HowWeWorkProps {
 export default function HowWeWork({ progress, stepsProgress }: HowWeWorkProps) {
   const translateX = lerp(100, 0, progress); // 100% off-screen -> 0% covering viewport
 
-  const gridT = remap(stepsProgress, CONFIG.GRID_REVEAL_START, CONFIG.GRID_REVEAL_END);
+  // NOTE: the lower-block reveal (GRID_REVEAL_*) is intentionally disabled for
+  // now — the services block renders statically until the design is locked.
+  void stepsProgress;
+
+  const COLS = CONFIG.GRID_COLUMNS;
+  const line = `1px solid ${CONFIG.GRID_LINE_COLOR}`;
+  // Base (mobile): labels/copy full width, cards 2-up. md+ : everything snaps
+  // onto the 24-column track so it lines up with the vertical rules.
+  const gridCss = `
+    .hww-lines { display: grid; grid-template-columns: repeat(${COLS}, minmax(0, 1fr)); grid-template-rows: 1fr; height: 100%; border-right: ${line}; }
+    .hww-lines > span { border-left: ${line}; }
+    .hww-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; row-gap: ${CONFIG.LOWER_LABEL_GAP}px; }
+    .hww-a, .hww-b, .hww-copy { grid-column: 1 / -1; }
+    @media (min-width: 768px) {
+      /* Fixed-height lower block: a labels row (auto) + a content row (fills
+         the rest). Cards & copy live in the content row and are pinned to
+         its top (align-items:start) so cards no longer STRETCH to the tall
+         copy column — they take the content-row height instead. */
+      .hww-grid {
+        grid-template-columns: repeat(${COLS}, minmax(0, 1fr));
+        grid-template-rows: auto minmax(0, 1fr);
+        column-gap: 0;
+        row-gap: ${CONFIG.LOWER_LABEL_GAP}px;
+        height: ${CONFIG.LOWER_HEIGHT}px;
+      }
+      .hww-a { grid-column: 1 / span 8; grid-row: 1; }
+      .hww-b { grid-column: 19 / span 6; grid-row: 1; }
+      .hww-copy { grid-column: 19 / span 6; grid-row: 2; }
+      .hww-card-1 { grid-column: 1 / span 3; grid-row: 2; }
+      .hww-card-2 { grid-column: 5 / span 3; grid-row: 2; }
+      .hww-card-3 { grid-column: 9 / span 3; grid-row: 2; }
+      .hww-card-4 { grid-column: 13 / span 3; grid-row: 2; }
+      /* Cards fill the content row's height; copy flows from the top. */
+      .hww-card-1, .hww-card-2, .hww-card-3, .hww-card-4 { height: 100%; }
+      .hww-copy { align-self: start; }
+    }
+  `;
 
   return (
     <div
-      className="absolute z-20 overflow-hidden"
+      className="absolute inset-0 z-20 overflow-hidden"
       style={{
-        // Negative insets equal to the surrounding layout's own padding —
-        // lets the panel bleed to the real viewport edges instead of
-        // stopping at whatever padded box it lives inside.
-        top: -40,
-        bottom: -40,
-        left: -40,
-        right: -40,
+        // The page is full-bleed now (no padding on <main>), so the panel
+        // simply covers the whole sticky viewport via inset-0. (It used to
+        // carry negative -40 insets to cancel a px-[40px]/py-10 padding on
+        // page.tsx — that padding is gone, so those insets are removed.)
         backgroundColor: CONFIG.BG,
         // ⚠️ Scroll-driven: no CSS transition on transform, or it'll lag
         // behind the scrollbar instead of tracking it 1:1.
@@ -86,101 +130,107 @@ export default function HowWeWork({ progress, stepsProgress }: HowWeWorkProps) {
         pointerEvents: progress > CONFIG.INTERACTIVE_THRESHOLD ? "auto" : "none",
       }}
     >
-      {/* Grid lines — repeating vertical rules spanning the whole panel. */}
+      {/* Modular grid + responsive column placement. Kept in one <style>
+          tag (driven by CONFIG) so the vertical rules and the content can
+          share the EXACT same 24-column track and stay aligned at every
+          width — a fixed-px repeating gradient can't do that. */}
+      <style>{gridCss}</style>
+
+      {/* Vertical rules — drawn FROM the same 24-col track as the content,
+          inside the same horizontal padding, so every card/label edge lands
+          on a line. Spans the full panel height. */}
       <div
         className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage: `repeating-linear-gradient(90deg, ${CONFIG.GRID_LINE_COLOR} 0, ${CONFIG.GRID_LINE_COLOR} 1px, transparent 1px, transparent ${CONFIG.GRID_COLUMN_WIDTH}px)`,
-        }}
-      />
+        style={{ paddingLeft: CONFIG.SECTION_PADDING_X, paddingRight: CONFIG.SECTION_PADDING_X }}
+      >
+        <div className="hww-lines">
+          {Array.from({ length: CONFIG.GRID_COLUMNS }).map((_, i) => (
+            <span key={i} />
+          ))}
+        </div>
+      </div>
 
       <div
-        className="relative flex h-full flex-col justify-center overflow-y-auto"
+        className="relative flex h-full flex-col justify-between overflow-y-auto"
         style={{
           paddingLeft: CONFIG.SECTION_PADDING_X,
           paddingRight: CONFIG.SECTION_PADDING_X,
-          paddingTop: CONFIG.SECTION_PADDING_Y,
-          paddingBottom: CONFIG.SECTION_PADDING_Y,
+          paddingTop: CONFIG.SECTION_PADDING_TOP,
+          paddingBottom: CONFIG.SECTION_PADDING_BOTTOM,
         }}
       >
-        {/* Headline — plain static white text, no scroll-scrub color. */}
+        {/* Headline — plain static white text, no scroll-scrub color.
+            Uses the project's PPMori (font-sans) at SemiBold, not Anton.
+            justify-between on the column pushes the headline to the top and
+            the lower block to the bottom, so the two together fill the whole
+            screen height. textIndent pushes only the FIRST line in (per the
+            reference), landing on a grid line since the indent is a % of the
+            track. */}
         <h2
-          className="font-display max-w-5xl text-3xl font-black leading-[1.15] text-white md:text-5xl lg:text-6xl"
-          style={{ marginBottom: CONFIG.HEADLINE_TO_SERVICES_GAP }}
+          className="font-sans font-semibold leading-[1.1] tracking-[-0.01em] text-white"
+          style={{
+            fontSize: CONFIG.HEADLINE_FONT,
+            textIndent: CONFIG.FIRST_LINE_INDENT,
+          }}
         >
           {HEADLINE}
         </h2>
 
-        {/* Services grid — fades and lifts in after the headline is
-            mostly read, via GRID_REVEAL_START/END. */}
-        <div
-          style={{
-            opacity: gridT,
-            transform: `translateY(${lerp(24, 0, gridT)}px)`,
-          }}
-        >
-          <div className="mb-10 flex items-baseline justify-between border-b border-white/10 pb-6">
-            <span
-              className="text-xs uppercase tracking-[0.2em]"
-              style={{ color: CONFIG.EYEBROW_COLOR }}
-            >
-              Our Services
-            </span>
-            <span
-              className="text-xs uppercase tracking-[0.2em]"
-              style={{ color: CONFIG.EYEBROW_COLOR }}
-            >
-              Est. 2008©
-            </span>
-          </div>
+        {/* Services block — fixed height (LOWER_HEIGHT). Reveal animation is
+            intentionally OFF for now (static), per current design pass. */}
+        <div className="hww-grid">
+          {/* Column labels — each sits directly above the column it names:
+              "Our Services" over the cards, "Est. 2008©" over the right copy. */}
+          <span className="hww-a font-sans text-sm" style={{ color: CONFIG.LABEL_COLOR }}>
+            Our Services
+          </span>
+          <span className="hww-b font-sans text-sm" style={{ color: CONFIG.LABEL_COLOR }}>
+            Est. 2008©
+          </span>
 
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-5">
+          {/* Cards — title only, top-left, tall empty body below (per ref).
+              Each card is placed on its own 3-col slot of the master track,
+              with the empty column between slots forming the gutter, so card
+              edges sit on grid lines. */}
+          {services.map((service, i) => (
             <div
-              className="grid grid-cols-2 md:col-span-3 md:grid-cols-4"
-              style={{ gap: CONFIG.CARD_GAP }}
+              key={service.id}
+              className={`hww-card hww-card-${i + 1}`}
+              style={{
+                backgroundColor: CONFIG.CARD_BG,
+                border: `1px solid ${CONFIG.CARD_BORDER}`,
+                padding: CONFIG.CARD_PADDING,
+              }}
             >
-              {services.map((service) => (
-                <div
-                  key={service.id}
-                  style={{
-                    backgroundColor: CONFIG.CARD_BG,
-                    border: `1px solid ${CONFIG.CARD_BORDER}`,
-                    padding: CONFIG.CARD_PADDING,
-                    minHeight: CONFIG.CARD_MIN_HEIGHT,
-                  }}
-                >
-                  <span className="mb-6 block font-mono text-sm text-white/40">
-                    {service.id}
-                  </span>
-                  <h3 className="font-display mb-3 text-xl font-black text-white">
-                    {service.title}
-                  </h3>
-                </div>
-              ))}
+              <h3 className="font-sans text-sm font-normal leading-snug text-white/90">
+                {service.title}
+              </h3>
             </div>
+          ))}
 
-            <div className="md:col-span-2 md:pl-8">
-              <p className="mb-6 text-base leading-relaxed" style={{ color: CONFIG.BODY_COLOR }}>
-                Every eCommerce is already in motion. Processes, people,
-                numbers, decisions. Our job isn't to sit on top of it.{" "}
-                <strong className="text-white">It's to step inside.</strong>
-              </p>
-              <p className="mb-6 text-base leading-relaxed" style={{ color: CONFIG.BODY_COLOR }}>
-                We work alongside teams, read the business, identify where
-                energy is being lost and where it needs to be amplified. We
-                don't operate in silos:{" "}
-                <strong className="text-white">
-                  design, technology and marketing move together
-                </strong>
-                , because that's how growth becomes sustainable.
-              </p>
-              <p className="text-base leading-relaxed" style={{ color: CONFIG.BODY_COLOR }}>
-                With in-house teams collaborating in real time, we reduce
-                friction, align decisions and turn complexity into
-                structure. We don't add noise.{" "}
-                <strong className="text-white">We bring direction.</strong>
-              </p>
-            </div>
+          {/* Right copy column — narrower and pushed right, sitting on the
+              last columns of the track with a grid-aligned gutter. */}
+          <div className="hww-copy">
+            <p className="mb-3 text-sm leading-relaxed" style={{ color: CONFIG.BODY_COLOR }}>
+              Every eCommerce is already in motion. Processes, people,
+              numbers, decisions. Our job isn&apos;t to sit on top of it.{" "}
+              <strong className="text-white">It&apos;s to step inside.</strong>
+            </p>
+            <p className="mb-3 text-sm leading-relaxed" style={{ color: CONFIG.BODY_COLOR }}>
+              We work alongside teams, read the business, identify where
+              energy is being lost and where it needs to be amplified. We
+              don&apos;t operate in silos:{" "}
+              <strong className="text-white">
+                design, technology and marketing move together
+              </strong>
+              , because that&apos;s how growth becomes sustainable.
+            </p>
+            <p className="text-sm leading-relaxed" style={{ color: CONFIG.BODY_COLOR }}>
+              With in-house teams collaborating in real time, we reduce
+              friction, align decisions and turn complexity into
+              structure. We don&apos;t add noise.{" "}
+              <strong className="text-white">We bring direction.</strong>
+            </p>
           </div>
         </div>
       </div>

@@ -256,8 +256,20 @@ export default function Footer() {
     console.log("newsletter signup:", value);
   };
 
+  // Vertical grid rules — same 24-column track, color and edge padding as
+  // the HowWeWork section, so the lines read as one continuous grid running
+  // straight down through the footer.
+  const GRID_COLUMNS = 24;
+  const GRID_LINE_COLOR = "rgba(255,255,255,0.10)";
+  const GRID_PADDING_X = 40;
+  const line = `1px solid ${GRID_LINE_COLOR}`;
+  const gridCss = `
+    .ftr-lines { display: grid; grid-template-columns: repeat(${GRID_COLUMNS}, minmax(0, 1fr)); grid-template-rows: 1fr; height: 100%; border-right: ${line}; }
+    .ftr-lines > span { border-left: ${line}; }
+  `;
+
   return (
-    <footer ref={footerRef} className="relative min-h-[720px] w-full overflow-hidden text-white px-[-40px]">
+    <footer ref={footerRef} className="relative min-h-[720px] w-full overflow-hidden text-white">
       {/* Background frame sequence — canvas painted by the rAF loop above,
           scrubbing frame-001..045 as the footer scrolls into view. */}
       <div
@@ -274,6 +286,20 @@ export default function Footer() {
           className="absolute inset-0"
           style={{ backgroundColor: `rgba(0,0,0,${CONFIG.SCRIM_OPACITY})` }}
         />
+      </div>
+
+      {/* Vertical grid rules — sit above the scrim (z-[1]) but below the
+          content (z-10), spanning the full footer height. */}
+      <style>{gridCss}</style>
+      <div
+        className="pointer-events-none absolute inset-0 z-[1]"
+        style={{ paddingLeft: GRID_PADDING_X, paddingRight: GRID_PADDING_X }}
+      >
+        <div className="ftr-lines">
+          {Array.from({ length: GRID_COLUMNS }).map((_, i) => (
+            <span key={i} />
+          ))}
+        </div>
       </div>
 
       {/* Center CTA — bold headline + bold email, no top nav above it */}
