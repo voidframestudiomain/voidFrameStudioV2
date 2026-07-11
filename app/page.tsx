@@ -5,7 +5,9 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import RecentProjects from "@/components/RecentProjects";
 import HowWeWork from "@/components/HowWeWork";
+import BrandIdentity from "@/components/BrandIdentity";
 import BridgeText from "@/components/BridgeText";
+import ClientsList from "@/components/ClientsList";
 import Footer from "@/components/Footer";
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
@@ -41,10 +43,17 @@ const remap = (t: number, start: number, end: number) =>
 // TOTAL_SCROLL_VH: total scrollable height (in viewport-heights) for ALL
 // FOUR phases combined. Bumped up from before since there's now a whole
 // extra reveal phase — narrower and the 4 straps will feel rushed.
-const RECENT_END = 0.35;
-const HOLD_END = 0.45;
-const SLIDE_END = 0.55;
-const TOTAL_SCROLL_VH = 320;
+// Retuned pacing: the slide-in used to get only 10% of the track (~32vh —
+// the panel slammed in), and everything past SLIDE_END was dead scroll
+// (~144vh of nothing moving, since the steps reveal is disabled) which
+// made the section feel stuck. The generous RECENT_END→HOLD_END hold
+// (~62vh of scroll) lets the expanded carousel breathe before the dark
+// panel even starts moving; the slide then plays over ~84vh with a short
+// settle beat at the end.
+const RECENT_END = 0.4;
+const HOLD_END = 0.62;
+const SLIDE_END = 0.92;
+const TOTAL_SCROLL_VH = 280;
 // ─────────────────────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -115,6 +124,8 @@ export default function Home() {
         </div>
       </div>
       <BridgeText />
+      <ClientsList />
+      <BrandIdentity />
       <Footer/>
     </main>
   );

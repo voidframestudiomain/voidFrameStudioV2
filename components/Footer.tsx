@@ -259,9 +259,9 @@ export default function Footer() {
   // Vertical grid rules — same 24-column track, color and edge padding as
   // the HowWeWork section, so the lines read as one continuous grid running
   // straight down through the footer.
-  const GRID_COLUMNS = 24;
+  const GRID_COLUMNS = 48;
   const GRID_LINE_COLOR = "rgba(255,255,255,0.10)";
-  const GRID_PADDING_X = 40;
+  const GRID_PADDING_X = "clamp(16px, 4vw, 40px)";
   const line = `1px solid ${GRID_LINE_COLOR}`;
   const gridCss = `
     .ftr-lines { display: grid; grid-template-columns: repeat(${GRID_COLUMNS}, minmax(0, 1fr)); grid-template-rows: 1fr; height: 100%; border-right: ${line}; }
@@ -269,7 +269,11 @@ export default function Footer() {
   `;
 
   return (
-    <footer ref={footerRef} className="relative min-h-[720px] w-full overflow-hidden text-white">
+    <footer
+      ref={footerRef}
+      data-header-theme="dark"
+      className="relative min-h-[720px] w-full overflow-hidden text-white"
+    >
       {/* Background frame sequence — canvas painted by the rAF loop above,
           scrubbing frame-001..045 as the footer scrolls into view. */}
       <div
@@ -302,14 +306,16 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Center CTA — bold headline + bold email, no top nav above it */}
-      <div className="relative z-10 flex min-h-[560px] flex-col items-center justify-center px-6 text-center">
-        <h2 className="max-w-3xl font-display text-4xl font-black leading-[0.95] md:text-6xl">
-          {CONFIG.HEADLINE}
-        </h2>
+      {/* Center CTA — deliberately minimal: a small tracked label and the
+          email, letting the frame-scrub footage carry the moment instead
+          of display type shouting over it. */}
+      <div className="relative z-10 flex min-h-[560px] flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-xs uppercase tracking-[0.25em] text-white/60">
+          ( {CONFIG.HEADLINE} )
+        </p>
         <a
           href={`mailto:${CONFIG.EMAIL}`}
-          className="mt-2 font-display text-4xl font-black leading-[0.95] underline decoration-2 underline-offset-4 transition-opacity hover:opacity-80 md:text-6xl"
+          className="max-w-full wrap-break-word text-xl font-medium tracking-tight underline decoration-white/40 underline-offset-8 transition-colors hover:decoration-white sm:text-2xl md:text-3xl"
         >
           {CONFIG.EMAIL}
         </a>

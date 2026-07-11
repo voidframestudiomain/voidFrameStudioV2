@@ -73,8 +73,8 @@ export default function Hero({ projectsProgress = 0 }: HeroProps) {
   const visible = mounted && !isHiddenByScroll;
 
   return (
-    <div className="absolute bottom-10 left-10 max-w-xl">
-      <h1 className="flex flex-wrap text-6xl font-bold uppercase leading-none tracking-tighter text-black">
+    <div className="absolute bottom-8 left-5 right-5 max-w-xl md:bottom-10 md:left-10 md:right-auto">
+      <h1 className="flex flex-wrap text-4xl font-bold uppercase leading-none tracking-tighter text-black sm:text-5xl md:text-6xl">
         {letters.map((letter, i) => {
           // Reveal sweeps left -> right (index order). Hide sweeps in the
           // same visual direction reversed (last letter first), so it

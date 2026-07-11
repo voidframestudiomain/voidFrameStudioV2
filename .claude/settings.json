@@ -7,7 +7,16 @@
       "Bash(curl -s -o /tmp/claude-501/-Users-vinaynain-voidframe/98bf2e27-c628-4c43-b460-d0bc73c0e783/scratchpad/p3.html -w \"%{http_code}\" http://localhost:3000/)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
       "Bash(curl -s -o /tmp/claude-501/-Users-vinaynain-voidframe/98bf2e27-c628-4c43-b460-d0bc73c0e783/scratchpad/p4.html -w \"%{http_code}\" http://localhost:3000/)",
-      "Bash(curl -s -o /tmp/claude-501/-Users-vinaynain-voidframe/98bf2e27-c628-4c43-b460-d0bc73c0e783/scratchpad/p5.html -w \"%{http_code}\" http://localhost:3000/)"
+      "Bash(curl -s -o /tmp/claude-501/-Users-vinaynain-voidframe/98bf2e27-c628-4c43-b460-d0bc73c0e783/scratchpad/p5.html -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(npx tsc *)",
+      "Bash(npx next *)",
+      "Bash(npx eslint *)",
+      "Read(//Users/vinaynain/Library/Caches/ms-playwright/**)",
+      "Bash(node -e \"require.resolve\\('playwright'\\)\")",
+      "Read(//Users/vinaynain/Library/Caches/ms-playwright/chromium_headless_shell-1228/**)",
+      "Bash(npm init *)",
+      "Bash(npm i *)",
+      "Read(//Users/vinaynain/Library/Caches/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-mac-arm64/**)"
     ]
   }
 }
