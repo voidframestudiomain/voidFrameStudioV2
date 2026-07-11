@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import RecentProjects from "@/components/RecentProjects";
 import HowWeWork from "@/components/HowWeWork";
-import BrandIdentity from "@/components/BrandIdentity";
+
 import BridgeText from "@/components/BridgeText";
 import ClientsList from "@/components/ClientsList";
 import Footer from "@/components/Footer";
@@ -125,7 +125,7 @@ export default function Home() {
       </div>
       <BridgeText />
       <ClientsList />
-      <BrandIdentity />
+
       <Footer/>
     </main>
   );
