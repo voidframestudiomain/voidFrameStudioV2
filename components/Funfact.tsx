@@ -3,7 +3,7 @@
 export default function FunFact() {
   return (
     
-    <section className="relative flex min-h-screen items-center overflow-hidden bg-[rgba(245,243,239)] text-black  -mx-[40px] w-[calc(100%+80px)]">
+    <section className="relative flex min-h-screen items-center overflow-hidden bg-[#f5f3ef] text-black  -mx-[40px] w-[calc(100%+80px)]">
       {/* Huge Background Text */}
       <h1 className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none text-[28vw] font-black uppercase tracking-tighter text-black/[0.03]">
         WHY?
