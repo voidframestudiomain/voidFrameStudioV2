@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────
 // 🎛️ TWEAK HERE
@@ -55,14 +55,18 @@ const CONFIG = {
   // ── Service cards ────────────────────────────────────────────────────
   CARD_BG: "rgba(255,255,255,0.035)",
   CARD_BORDER: "rgba(255,255,255,0.06)",
-  CARD_PADDING: "24px 22px",
+  // Fluid: phones get compact cards (the 2×2 grid has to share one screen
+  // with the headline), desktop keeps the original 24/22.
+  CARD_PADDING: "clamp(14px, 2vw, 24px) clamp(12px, 1.8vw, 22px)",
 
   // ── Section spacing ─────────────────────────────────────────────────
   // Horizontal edge padding — fluid so the panel breathes on phones
   // (16px) and keeps the original 40px on desktop.
   SECTION_PADDING_X: "clamp(16px, 4vw, 40px)",
-  SECTION_PADDING_TOP: 104, // px, clears the fixed header so the headline sits under it
-  SECTION_PADDING_BOTTOM: 56, // px
+  // Vertical padding is fluid too: the whole panel must fit a ~660px
+  // phone viewport without falling back to inner scrolling.
+  SECTION_PADDING_TOP: "clamp(76px, 11svh, 104px)", // clears the fixed header
+  SECTION_PADDING_BOTTOM: "clamp(28px, 5svh, 56px)",
   FIRST_LINE_INDENT: "12.5%", // indent on the headline's first line (per ref)
 
   // ── Lower (services) block ──────────────────────────────────────────
@@ -166,9 +170,8 @@ function PanelInner({ theme }: { theme: Theme }) {
             reference), landing on a grid line since the indent is a % of the
             track. */}
         <h2
-          className="font-sans font-semibold leading-[1.1] tracking-[-0.01em]"
+          className="hww-headline font-sans font-semibold leading-[1.1] tracking-[-0.01em]"
           style={{
-            fontSize: CONFIG.HEADLINE_FONT,
             textIndent: CONFIG.FIRST_LINE_INDENT,
             color: theme.text,
           }}
@@ -219,7 +222,10 @@ function PanelInner({ theme }: { theme: Theme }) {
               numbers, decisions. Our job isn&apos;t to sit on top of it.{" "}
               <strong style={{ color: theme.strong }}>It&apos;s to step inside.</strong>
             </p>
-            <p className="mb-3 text-sm leading-relaxed" style={{ color: theme.body }}>
+            {/* Phones get the one paragraph that matters — the rest of the
+                copy would push the panel past one screen and force inner
+                scrolling inside the pinned section. */}
+            <p className="mb-3 hidden text-sm leading-relaxed md:block" style={{ color: theme.body }}>
               We work alongside teams, read the business, identify where
               energy is being lost and where it needs to be amplified. We
               don&apos;t operate in silos:{" "}
@@ -228,7 +234,7 @@ function PanelInner({ theme }: { theme: Theme }) {
               </strong>
               , because that&apos;s how growth becomes sustainable.
             </p>
-            <p className="text-sm leading-relaxed" style={{ color: theme.body }}>
+            <p className="hidden text-sm leading-relaxed md:block" style={{ color: theme.body }}>
               With in-house teams collaborating in real time, we reduce
               friction, align decisions and turn complexity into
               structure. We don&apos;t add noise.{" "}
@@ -272,6 +278,54 @@ export default function HowWeWork({ progress, stepsProgress }: HowWeWorkProps) {
   const headRef = useRef(0); // next ring-buffer slot to write
   const lastStampRef = useRef<{ x: number; y: number } | null>(null);
 
+  // Walk the segment from the last stamp point to (x, y), dropping a blot
+  // every INK_STAMP_SPACING px — shared by the mouse trail AND the
+  // autonomous touch-device brush below, so both paint identical strokes.
+  const stampPath = useCallback((x: number, y: number) => {
+    // First call just seeds the trail origin — no blot, so a stroke
+    // doesn't splat until the brush actually travels.
+    const last = lastStampRef.current;
+    if (!last) {
+      lastStampRef.current = { x, y };
+      return;
+    }
+
+    let dx = x - last.x;
+    let dy = y - last.y;
+    let dist = Math.hypot(dx, dy);
+    const now = performance.now();
+    while (dist >= CONFIG.INK_STAMP_SPACING) {
+      const step = CONFIG.INK_STAMP_SPACING / dist;
+      last.x += dx * step;
+      last.y += dy * step;
+      stampsRef.current[headRef.current] = {
+        x: last.x,
+        y: last.y,
+        // ±20% size jitter keeps the stroke from reading as a tube
+        base: CONFIG.INK_STAMP_RADIUS * (0.8 + Math.random() * 0.4),
+        born: now,
+      };
+      headRef.current = (headRef.current + 1) % CONFIG.INK_POOL;
+      dx = x - last.x;
+      dy = y - last.y;
+      dist = Math.hypot(dx, dy);
+    }
+  }, []);
+
+  // The ink reveal is cursor-driven, so it's a no-op on touch devices —
+  // there the panel simply stays black, and the whole yellow layer + SVG
+  // mask pipeline is skipped (rendering it just burns mobile GPU time; an
+  // earlier autonomous-reveal experiment flickered and wasn't worth it).
+  const isTouch = useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia("(hover: none)");
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia("(hover: none)").matches,
+    () => false // SSR: assume hover until the client says otherwise
+  );
+
   useEffect(() => {
     let frameId = 0;
 
@@ -311,9 +365,21 @@ export default function HowWeWork({ progress, stepsProgress }: HowWeWorkProps) {
   const gridCss = `
     .hww-lines { display: grid; grid-template-columns: repeat(${COLS}, minmax(0, 1fr)); grid-template-rows: 1fr; height: 100%; border-right: 1px solid var(--hww-line); }
     .hww-lines > span { border-left: 1px solid var(--hww-line); }
-    .hww-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; row-gap: ${CONFIG.LOWER_LABEL_GAP}px; }
-    .hww-a, .hww-b, .hww-copy { grid-column: 1 / -1; }
+    /* Headline: fluid on phones (must share one screen with the 2x2 card
+       grid + copy), original clamp from md up. */
+    .hww-headline { font-size: clamp(1.0625rem, 4.6vw, 1.5rem); }
+    .hww-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 12px; row-gap: 12px; }
+    /* Phones: the two labels share one row (left / right ends), cards flow
+       2-up underneath, copy spans full width below. */
+    .hww-a { grid-column: 1; }
+    .hww-b { grid-column: 2; text-align: right; }
+    .hww-copy { grid-column: 1 / -1; margin-top: 8px; }
+    .hww-card { min-height: 74px; }
     @media (min-width: 768px) {
+      .hww-headline { font-size: ${CONFIG.HEADLINE_FONT}; }
+      .hww-b { text-align: left; }
+      .hww-copy { margin-top: 0; }
+      .hww-card { min-height: 0; }
       /* Fixed-height lower block: a labels row (auto) + a content row (fills
          the rest). Cards & copy live in the content row and are pinned to
          its top (align-items:start) so cards no longer STRETCH to the tall
@@ -360,40 +426,10 @@ export default function HowWeWork({ progress, stepsProgress }: HowWeWorkProps) {
         const panel = panelRef.current;
         if (!panel) return;
         const rect = panel.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        // First move just seeds the trail origin — no blot, so entering
-        // the panel doesn't splat until the cursor actually travels.
-        const last = lastStampRef.current;
-        if (!last) {
-          lastStampRef.current = { x, y };
-          return;
-        }
-
-        // Stamp blots every INK_STAMP_SPACING px along the segment the
-        // cursor covered since the previous event, so fast flicks paint a
-        // continuous stroke instead of scattered dots.
-        let dx = x - last.x;
-        let dy = y - last.y;
-        let dist = Math.hypot(dx, dy);
-        const now = performance.now();
-        while (dist >= CONFIG.INK_STAMP_SPACING) {
-          const step = CONFIG.INK_STAMP_SPACING / dist;
-          last.x += dx * step;
-          last.y += dy * step;
-          stampsRef.current[headRef.current] = {
-            x: last.x,
-            y: last.y,
-            // ±20% size jitter keeps the stroke from reading as a tube
-            base: CONFIG.INK_STAMP_RADIUS * (0.8 + Math.random() * 0.4),
-            born: now,
-          };
-          headRef.current = (headRef.current + 1) % CONFIG.INK_POOL;
-          dx = x - last.x;
-          dy = y - last.y;
-          dist = Math.hypot(dx, dy);
-        }
+        // Stamp blots along the segment the cursor covered since the
+        // previous event, so fast flicks paint a continuous stroke
+        // instead of scattered dots.
+        stampPath(e.clientX - rect.left, e.clientY - rect.top);
       }}
       onPointerLeave={() => {
         // Re-seed on next entry — otherwise re-entering on the far side
@@ -410,7 +446,10 @@ export default function HowWeWork({ progress, stepsProgress }: HowWeWorkProps) {
       {/* Ink mask plumbing: hard-edged circles (the cursor chain) pushed
           through fractal-noise displacement, turning clean geometry into a
           ragged ink splash. The <mask> starts all-black (circles at r=0),
-          so the yellow layer is invisible until the cursor moves. */}
+          so the yellow layer is invisible until the cursor moves.
+          Mouse-only — on touch the whole SVG pipeline is skipped (see the
+          spotlight walker above for why). */}
+      {!isTouch && (
       <svg aria-hidden className="absolute h-0 w-0">
         <defs>
           <filter id="hww-ink-filter" x="-60%" y="-60%" width="220%" height="220%">
@@ -473,19 +512,22 @@ export default function HowWeWork({ progress, stepsProgress }: HowWeWorkProps) {
           </mask>
         </defs>
       </svg>
+      )}
 
       {/* Dark base layer */}
       <PanelInner theme={THEMES.dark} />
 
       {/* Yellow reveal layer — identical content, inverted palette, masked
           by the ink splash. pointer-events-none so the dark layer keeps
-          handling all interaction. */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{ mask: "url(#hww-ink-mask)", WebkitMask: "url(#hww-ink-mask)" }}
-      >
-        <PanelInner theme={THEMES.yellow} />
-      </div>
+          handling all interaction. Mouse-only, like the mask that drives it. */}
+      {!isTouch && (
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ mask: "url(#hww-ink-mask)", WebkitMask: "url(#hww-ink-mask)" }}
+        >
+          <PanelInner theme={THEMES.yellow} />
+        </div>
+      )}
     </div>
   );
 }

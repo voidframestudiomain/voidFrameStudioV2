@@ -118,7 +118,11 @@ export default function Home() {
       <Hero projectsProgress={recentProgress} />
 
       <div ref={sectionRef} style={{ height: `${TOTAL_SCROLL_VH}vh` }} className="relative">
-        <div className="sticky top-0 h-screen w-full">
+        {/* h-dvh (not h-screen): on mobile the URL bar collapses while
+            scrolling, and 100vh would leave the pinned panel either cropped
+            or with a yellow gap at the bottom. dvh tracks the real visible
+            viewport. */}
+        <div className="sticky top-0 h-dvh w-full">
           <RecentProjects progress={recentProgress} containerWidth={containerWidth} />
           <HowWeWork progress={slideProgress} stepsProgress={stepsProgress} />
         </div>

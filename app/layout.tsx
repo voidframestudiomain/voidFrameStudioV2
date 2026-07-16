@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Anton } from "next/font/google";
 import "./globals.css";
@@ -24,6 +24,15 @@ const anton = Anton({
   variable: "--font-anton",
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // viewport-fit=cover lets the page paint behind the iPhone notch/home
+  // indicator; sections that need clearance use env(safe-area-inset-*).
+  viewportFit: "cover",
+  themeColor: "#ffe500",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://voidframe.com"),

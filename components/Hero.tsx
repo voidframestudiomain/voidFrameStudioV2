@@ -66,46 +66,75 @@ export default function Hero({ projectsProgress = 0 }: HeroProps) {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const letters = useMemo(() => HEADING.split(""), []);
+  // Words (not a flat letter list): on phones each word takes its own line
+  // so the heading reads as a stacked typographic cover, while md+ lays the
+  // words back out in a row \u2014 the classic bottom-left lockup. The letter
+  // stagger index runs continuously across words so the reveal sweep is
+  // identical in both layouts.
+  const words = useMemo(() => {
+    let letterIndex = 0;
+    return HEADING.split(" ").map((word) => ({
+      word,
+      letters: word.split("").map((letter) => ({ letter, index: letterIndex++ })),
+    }));
+  }, []);
+  const totalLetters = useMemo(
+    () => words.reduce((n, w) => n + w.letters.length, 0),
+    [words]
+  );
   const chunks = useMemo(() => chunkWords(DESCRIPTION, CHUNK_SIZE), []);
 
   const isHiddenByScroll = projectsProgress > HIDE_THRESHOLD;
   const visible = mounted && !isHiddenByScroll;
 
   return (
-    <div className="absolute bottom-8 left-5 right-5 max-w-xl md:bottom-10 md:left-10 md:right-auto">
-      <h1 className="flex flex-wrap text-4xl font-bold uppercase leading-none tracking-tighter text-black sm:text-5xl md:text-6xl">
-        {letters.map((letter, i) => {
-          // Reveal sweeps left -> right (index order). Hide sweeps in the
-          // same visual direction reversed (last letter first), so it
-          // reads as the same motion undoing itself rather than a
-          // mirror-image animation.
-          const delayIndex = visible ? i : letters.length - 1 - i;
+    <>
+    {/* Phones: anchored to the TOP (under the fixed header) \u2014 the bottom of
+        the first screen belongs to the thumbnail strip, and top-anchoring is
+        immune to the mobile URL-bar height dance. md+ keeps the original
+        bottom-left lockup. */}
+    <div className="absolute left-5 right-5 top-24 md:top-auto md:bottom-10 md:left-10 md:right-auto md:max-w-xl">
+      <h1 className="flex flex-col text-[17vw] font-bold uppercase leading-[0.92] tracking-tighter text-black md:flex-row md:flex-wrap md:text-6xl md:leading-none">
+        {words.map((w, wi) => (
+          <span key={wi} className="flex md:inline-flex">
+            {w.letters.map(({ letter, index }) => {
+              // Reveal sweeps left -> right (index order). Hide sweeps in
+              // the same visual direction reversed (last letter first), so
+              // it reads as the same motion undoing itself rather than a
+              // mirror-image animation.
+              const delayIndex = visible ? index : totalLetters - 1 - index;
 
-          return (
-            <span key={i} className="inline-block overflow-hidden">
-              <span
-                className="inline-block will-change-transform"
-                style={{
-                  transform: visible ? "translateY(0%)" : "translateY(110%)",
-                  opacity: visible ? 1 : 0,
-                  transitionProperty: "transform, opacity",
-                  transitionDuration: `${DURATION_MS}ms`,
-                  transitionTimingFunction: EASE,
-                  transitionDelay: `${delayIndex * LETTER_STAGGER_MS}ms`,
-                }}
-              >
-                {letter === " " ? "\u00A0" : letter}
-              </span>
-            </span>
-          );
-        })}
+              return (
+                <span key={index} className="inline-block overflow-hidden">
+                  <span
+                    className="inline-block will-change-transform"
+                    style={{
+                      transform: visible ? "translateY(0%)" : "translateY(110%)",
+                      opacity: visible ? 1 : 0,
+                      transitionProperty: "transform, opacity",
+                      transitionDuration: `${DURATION_MS}ms`,
+                      transitionTimingFunction: EASE,
+                      transitionDelay: `${delayIndex * LETTER_STAGGER_MS}ms`,
+                    }}
+                  >
+                    {letter}
+                  </span>
+                </span>
+              );
+            })}
+            {/* Word gap only matters in the md+ row layout \u2014 on phones each
+                word is its own line. */}
+            {wi < words.length - 1 && (
+              <span className="hidden md:inline-block">{"\u00A0"}</span>
+            )}
+          </span>
+        ))}
       </h1>
 
       {/* Description: same reveal/hide motion as the heading, just applied
           per 2–3 word chunk instead of per letter, and starting a beat
           after the heading finishes. */}
-      <p className="mt-1 flex flex-wrap gap-x-1.5 text-sm leading-none text-black/70">
+      <p className="mt-5 flex max-w-76 flex-wrap gap-x-1.5 text-sm leading-snug text-black/70 md:mt-1 md:max-w-none md:leading-none">
         {chunks.map((chunk, i) => {
           const delayIndex = visible ? i : chunks.length - 1 - i;
           const baseDelay = visible ? DESCRIPTION_START_DELAY_MS : 0;
@@ -130,5 +159,23 @@ export default function Hero({ projectsProgress = 0 }: HeroProps) {
         })}
       </p>
     </div>
+
+    {/* Mobile-only scroll cue, bottom-left — the collapsed thumbnail strip
+        owns the bottom-right corner, so this balances the composition and
+        tells a first-time visitor the page is scroll-driven. Fades out with
+        the rest of the hero once scrolling starts. */}
+    <span
+      className="absolute bottom-6 left-5 text-[10px] uppercase tracking-[0.25em] text-black/50 md:hidden"
+      style={{
+        opacity: visible ? 1 : 0,
+        transitionProperty: "opacity",
+        transitionDuration: `${DURATION_MS}ms`,
+        transitionTimingFunction: EASE,
+        transitionDelay: visible ? `${DESCRIPTION_START_DELAY_MS + 400}ms` : "0ms",
+      }}
+    >
+      ( Scroll )
+    </span>
+    </>
   );
 }

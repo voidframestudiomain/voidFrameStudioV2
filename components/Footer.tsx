@@ -321,8 +321,9 @@ export default function Footer() {
         </a>
       </div>
 
-      {/* Bottom nav — 4 columns, no vertical grid lines */}
-      <div className="relative z-10 grid grid-cols-1 gap-10 px-6 pb-12 pt-8 sm:grid-cols-2 lg:grid-cols-4 lg:px-16">
+      {/* Bottom nav — 4 columns, no vertical grid lines. Bottom padding
+          clears the iOS home indicator. */}
+      <div className="relative z-10 grid grid-cols-1 gap-10 px-6 pb-[calc(3rem+env(safe-area-inset-bottom))] pt-8 sm:grid-cols-2 lg:grid-cols-4 lg:px-16">
         {CONFIG.NAV_COLUMNS.map((col) => (
           <div key={col.label} className="flex flex-col gap-4">
             <span className="font-mono text-xs uppercase tracking-[0.15em] text-white/60">
@@ -341,7 +342,7 @@ export default function Footer() {
                   ref={emailRef}
                   type="email"
                   placeholder="enter your email"
-                  className="w-full max-w-xs border border-white/20 bg-transparent px-3 py-2 text-sm text-white placeholder-white/40 outline-none focus:border-white/50"
+                  className="w-full max-w-xs border border-white/20 bg-transparent px-3 py-2 text-base text-white placeholder-white/40 outline-none focus:border-white/50 md:text-sm"
                 />
                 <button
                   onClick={handleJoin}

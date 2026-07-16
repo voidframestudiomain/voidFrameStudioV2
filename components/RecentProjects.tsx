@@ -181,6 +181,18 @@ export default function RecentProjects({ progress, containerWidth }: RecentProje
   const lastPointerXRef = useRef(0);
   const lastPointerTRef = useRef(0);
   const flickVelocityRef = useRef(0);
+  // Tap-to-select (touch): pointerdown records where/when the gesture
+  // started; a pointerup that barely moved is a tap, which selects that
+  // card into the info bar — the touch counterpart of desktop's hover.
+  const tapStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
+  // True on devices with no hover (phones/tablets). Mobile browsers fire
+  // EMULATED mouseenter after a tap — without this guard a single tap
+  // would set pausedRef and freeze the carousel drift forever, since the
+  // matching mouseleave never comes on touch.
+  const isTouchRef = useRef(false);
+  useEffect(() => {
+    isTouchRef.current = window.matchMedia("(hover: none)").matches;
+  }, []);
   // Distance the track must travel before the layout repeats (one full
   // card set including its trailing gap). Kept in a ref so the rAF loop
   // always wraps against the latest measured width after a resize.
@@ -321,7 +333,7 @@ export default function RecentProjects({ progress, containerWidth }: RecentProje
           track wraps every `cardSetWidth` px. overflow-hidden clips the
           duplicate set, which sits offscreen right until it drifts in. ── */}
       <div
-        className={`absolute z-[5] select-none overflow-hidden ${
+        className={`absolute z-5 select-none overflow-hidden ${
           carouselActive ? "cursor-grab active:cursor-grabbing" : ""
         }`}
         style={{
@@ -338,6 +350,7 @@ export default function RecentProjects({ progress, containerWidth }: RecentProje
           draggingRef.current = true;
           lastPointerXRef.current = e.clientX;
           lastPointerTRef.current = performance.now();
+          tapStartRef.current = { x: e.clientX, y: e.clientY, t: performance.now() };
           flickVelocityRef.current = 0;
           velocityRef.current = 0;
           // Grabbing the track shouldn't leave a card stuck expanded.
@@ -370,6 +383,22 @@ export default function RecentProjects({ progress, containerWidth }: RecentProje
             Math.min(CONFIG.MAX_SWIPE_SPEED, flickVelocityRef.current)
           );
           e.currentTarget.releasePointerCapture(e.pointerId);
+
+          // Tap (barely moved, quick): select that card into the info bar.
+          // Pointer capture retargets events to the container, so resolve
+          // the card under the finger via elementFromPoint.
+          const start = tapStartRef.current;
+          tapStartRef.current = null;
+          if (
+            start &&
+            Math.hypot(e.clientX - start.x, e.clientY - start.y) < 10 &&
+            performance.now() - start.t < 400
+          ) {
+            const card = document
+              .elementFromPoint(e.clientX, e.clientY)
+              ?.closest<HTMLElement>("[data-project-id]");
+            if (card?.dataset.projectId) setActiveId(card.dataset.projectId);
+          }
         }}
         onPointerCancel={() => {
           draggingRef.current = false;
@@ -383,12 +412,15 @@ export default function RecentProjects({ progress, containerWidth }: RecentProje
             return (
               <div
                 key={`${project.id}-${i >= projects.length ? "b" : "a"}`}
+                data-project-id={project.id}
                 onMouseEnter={() => {
+                  if (isTouchRef.current) return; // emulated after tap — ignore
                   setHoveredId(project.id);
                   setActiveId(project.id);
                   pausedRef.current = true; // hovering pauses the drift
                 }}
                 onMouseLeave={() => {
+                  if (isTouchRef.current) return;
                   setHoveredId(null);
                   pausedRef.current = false;
                 }}
@@ -418,7 +450,7 @@ export default function RecentProjects({ progress, containerWidth }: RecentProje
                 />
                 {/* darkening gradient fades in as the row expands */}
                 <div
-                  className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"
+                  className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-transparent"
                   style={{ opacity: progress }}
                 />
                 <span
@@ -427,6 +459,19 @@ export default function RecentProjects({ progress, containerWidth }: RecentProje
                 >
                   {project.id}
                 </span>
+                {/* Phones have no hover to reveal identity — each card
+                    carries its name, and the tapped (active) card shows a
+                    yellow underline tying it to the info bar below. */}
+                <span
+                  className="absolute bottom-2.5 left-3 right-3 truncate text-[11px] font-semibold uppercase tracking-wider text-white md:hidden"
+                  style={{ opacity: progress }}
+                >
+                  {project.name}
+                </span>
+                <span
+                  className="pointer-events-none absolute bottom-0 left-0 right-0 h-0.5 bg-bg transition-opacity duration-300 md:hidden"
+                  style={{ opacity: activeId === project.id ? progress : 0 }}
+                />
               </div>
             );
           })}

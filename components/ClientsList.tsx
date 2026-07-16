@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -74,12 +74,72 @@ export default function ClientsList() {
   // pointer leaves the list — no image at rest.
   const [hovering, setHovering] = useState(false);
 
+  // ── Touch "scanline" ──
+  // Phones have no hover, so the list highlights itself: as you scroll,
+  // the row crossing the viewport's vertical center lights up (same band
+  // treatment as desktop hover) and drives a floating preview card pinned
+  // to the bottom corner. Desktop behavior is untouched.
+  const isTouch = useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia("(hover: none)");
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia("(hover: none)").matches,
+    () => false // SSR: assume hover until the client says otherwise
+  );
+  const [activeIdx, setActiveIdx] = useState<number | null>(null);
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    if (!isTouch) return;
+
+    let raf = 0;
+    const check = () => {
+      raf = 0;
+      const scanY = window.innerHeight * 0.5;
+      let best: number | null = null;
+      let bestDist = Infinity;
+      rowRefs.current.forEach((row, i) => {
+        if (!row) return;
+        const r = row.getBoundingClientRect();
+        // Only rows actually crossing the middle band count — when the
+        // list is off screen, nothing is active and the card hides.
+        if (r.bottom < scanY - r.height || r.top > scanY + r.height) return;
+        const dist = Math.abs((r.top + r.bottom) / 2 - scanY);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = i;
+        }
+      });
+      setActiveIdx(best);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(check);
+    };
+    check();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [isTouch]);
+
   const showImage = (src: string) => {
     setLayers((prev) => {
       if (prev[prev.length - 1].src === src) return prev; // same artwork — no wipe
       return [...prev.slice(-1), { src, id: nextIdRef.current++ }];
     });
   };
+
+  // The scanline drives the same image stack the desktop hover uses, so
+  // the floating card gets the center-wipe reveal for free.
+  useEffect(() => {
+    if (activeIdx === null) return;
+    showImage(clients[activeIdx].image);
+  }, [activeIdx]);
 
   const css = `
     .cl-lines { display: grid; grid-template-columns: repeat(${CONFIG.GRID_COLUMNS}, minmax(0, 1fr)); grid-template-rows: 1fr; height: 100%; border-right: 1px solid ${CONFIG.GRID_LINE_COLOR}; }
@@ -164,19 +224,28 @@ export default function ClientsList() {
             ))}
           </div>
 
-          {clients.map((client) => (
+          {clients.map((client, i) => {
+            const isActive = isTouch && activeIdx === i;
+            return (
             <div
               key={client.name}
+              ref={(el) => {
+                rowRefs.current[i] = el;
+              }}
               onMouseEnter={() => {
+                if (isTouch) return; // scanline owns the highlight on touch
                 setHovering(true);
                 showImage(client.image);
               }}
               className="group relative cursor-pointer py-4"
             >
               {/* Slim white band centered on the row — the hover highlight
-                  behind the text, kept well under the row's full height. */}
+                  behind the text, kept well under the row's full height.
+                  On touch the scanline (isActive) drives it instead. */}
               <span
-                className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 bg-white opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                className={`pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 bg-white transition-opacity duration-150 group-hover:opacity-100 ${
+                  isActive ? "opacity-100" : "opacity-0"
+                }`}
                 style={{ height: CONFIG.ROW_BAND_HEIGHT }}
               />
               {/* Accent strip continuing the hover highlight ACROSS the
@@ -192,10 +261,18 @@ export default function ClientsList() {
               />
 
               <div className="cl-row relative font-mono text-sm uppercase tracking-wider">
-                <span className="cl-name text-white transition-colors duration-150 group-hover:text-black">
+                <span
+                  className={`cl-name transition-colors duration-150 group-hover:text-black ${
+                    isActive ? "text-black" : "text-white"
+                  }`}
+                >
                   {client.name}
                 </span>
-                <span className="cl-platform text-white/70 transition-colors duration-150 group-hover:text-black">
+                <span
+                  className={`cl-platform transition-colors duration-150 group-hover:text-black ${
+                    isActive ? "text-black" : "text-white/70"
+                  }`}
+                >
                   {client.platform}
                 </span>
                 <span className="cl-letter text-white/70 transition-colors duration-150 group-hover:text-black">
@@ -206,9 +283,43 @@ export default function ClientsList() {
                 </span>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
+
+      {/* Floating preview card — the touch counterpart of the desktop
+          center image. Pinned to the bottom corner (clear of the home
+          indicator), it wipes between artworks as the scanline moves and
+          slips away once the list leaves the viewport. */}
+      {isTouch && (
+        <div
+          className="pointer-events-none fixed right-4 z-40 w-40 md:hidden"
+          style={{
+            bottom: "calc(1.25rem + env(safe-area-inset-bottom))",
+            opacity: activeIdx !== null ? 1 : 0,
+            transform: activeIdx !== null ? "translateY(0)" : "translateY(12px)",
+            transition: `opacity 350ms ${CONFIG.REVEAL_EASE}, transform 350ms ${CONFIG.REVEAL_EASE}`,
+          }}
+        >
+          <div className="relative aspect-4/3 overflow-hidden border border-white/15">
+            {layers.map((layer) => (
+              <div key={layer.id} className="cl-reveal absolute inset-0 overflow-hidden">
+                <Image src={layer.src} alt="" fill sizes="160px" className="cl-zoom object-cover" />
+              </div>
+            ))}
+          </div>
+          {activeIdx !== null && (
+            <div
+              className="flex items-baseline justify-between gap-2 px-2 py-1.5 font-mono text-[9px] uppercase tracking-wider text-black"
+              style={{ backgroundColor: CONFIG.ACCENT }}
+            >
+              <span className="truncate">{clients[activeIdx].name}</span>
+              <span className="shrink-0 opacity-70">{clients[activeIdx].services}</span>
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }

@@ -77,6 +77,11 @@ export default function BridgeText() {
   const gridCss = `
     .brdg-lines { display: grid; grid-template-columns: repeat(${CONFIG.GRID_COLUMNS}, minmax(0, 1fr)); grid-template-rows: 1fr; height: 100%; border-right: ${line}; }
     .brdg-lines > span { border-left: ${line}; }
+    /* The statement needs its own mobile scale: CONFIG.FONT's 5vw preferred
+       value is ~20px on a 390px phone — body-copy size, not a statement.
+       md+ keeps the exact original clamp. */
+    .brdg-copy { font-size: clamp(2rem, 9.5vw, 3.5rem); }
+    @media (min-width: 768px) { .brdg-copy { font-size: ${CONFIG.FONT}; } }
   `;
 
   return (
@@ -87,7 +92,7 @@ export default function BridgeText() {
       className="relative"
     >
       <div
-        className="sticky top-0 h-screen w-full overflow-hidden"
+        className="sticky top-0 h-dvh w-full overflow-hidden"
         style={{ backgroundColor: CONFIG.BG }}
       >
         {/* Continuous vertical rules */}
@@ -119,9 +124,8 @@ export default function BridgeText() {
               bottom-aligns the button with the last line of the paragraph. */}
           <div className="flex flex-col items-start gap-8 md:flex-row md:items-end md:justify-between md:gap-10">
             <p
-              className="font-sans font-semibold uppercase md:max-w-[64%]"
+              className="brdg-copy font-sans font-semibold uppercase md:max-w-[64%]"
               style={{
-                fontSize: CONFIG.FONT,
                 lineHeight: CONFIG.LEADING,
                 letterSpacing: "-0.01em",
               }}

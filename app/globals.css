@@ -16,6 +16,10 @@
 
 html {
   scroll-behavior: smooth;
+  /* Stop iOS Safari from inflating text in landscape, and kill the grey
+     tap-flash on the touch-driven interactive sections. */
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
