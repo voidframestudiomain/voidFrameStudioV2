@@ -8,6 +8,7 @@ import Workflow from "@/components/Workflow";
 import Contact from "@/components/Contactus";
 import About from "@/components/About";
 import FunFact from "@/components/Funfact";
+import ClientSimulator from "@/components/ClientSimulator";
 // import Cafehero from "@/components/Cafehero";
 // import CellHero from "@/components/CellHero";
 
@@ -27,9 +28,13 @@ export default function Home() {
       <Workflow />
 
       {/* Spectrum rules mark each hand-off between color blocks —
-          lilac → ink → yellow → beige → ink. */}
+          lilac → ink → yellow → blue → beige → ink. */}
       <div className="vf-spectrum vf-bleed" />
       <FunFact />
+      <div className="vf-spectrum vf-bleed" />
+      {/* FunFact lists the red-flag feedback; this section lets you
+          commit it. Keep them adjacent — it's one joke in two acts. */}
+      <ClientSimulator />
       <div className="vf-spectrum vf-bleed" />
       <Contact />
       <div className="vf-spectrum vf-bleed" />

@@ -4,7 +4,7 @@ import { ArrowUpRight } from "lucide-react";
 
 export default function Contact() {
   return (
-    <section className="vf-bleed relative overflow-hidden bg-beige text-ink py-32">
+    <section id="contact" className="vf-bleed relative overflow-hidden bg-beige text-ink py-32">
       {/* Background Text */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <h1 className="select-none text-[22vw] font-black uppercase tracking-tighter text-ink/[0.05] leading-none">
