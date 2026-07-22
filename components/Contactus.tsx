@@ -4,10 +4,10 @@ import { ArrowUpRight } from "lucide-react";
 
 export default function Contact() {
   return (
-    <section className="relative overflow-hidden bg-[rgba(245,243,239)] text-black py-32 -mx-[40px] w-[calc(100%+80px)]">
+    <section className="vf-bleed relative overflow-hidden bg-beige text-ink py-32">
       {/* Background Text */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <h1 className="select-none text-[22vw] font-black uppercase tracking-tighter text-black/[0.03] leading-none">
+        <h1 className="select-none text-[22vw] font-black uppercase tracking-tighter text-ink/[0.05] leading-none">
           VOID
         </h1>
       </div>
@@ -15,20 +15,20 @@ export default function Contact() {
       <div className="relative z-10 mx-auto max-w-7xl px-10">
         {/* Hero */}
         <div className="mb-32">
-          <p className="mb-4 text-sm uppercase tracking-[0.4em] text-neutral-500">
+          <p className="mb-4 text-sm uppercase tracking-[0.4em] text-ink/50">
             Final Frame
           </p>
 
-          <h1 className="text-[clamp(4rem,12vw,10rem)] font-black uppercase leading-[0.85] tracking-tight">
+          <h1 className="font-display text-[clamp(4rem,12vw,10rem)] uppercase leading-[0.85] tracking-tight vf-text-hard">
             Contact
             <br />
             Us
           </h1>
 
-          <p className="mt-10 max-w-xl text-lg leading-relaxed text-neutral-600">
+          <p className="mt-10 max-w-xl text-lg leading-relaxed text-ink/70">
             Every brand has a story. The question is—
             <br />
-            <span className="text-black">
+            <span className="text-green">
               will anyone remember yours?
             </span>
           </p>
@@ -38,11 +38,11 @@ export default function Contact() {
         <div className="grid gap-24 lg:grid-cols-2">
           {/* Left */}
           <div>
-            <p className="mb-6 text-xs uppercase tracking-[0.4em] text-neutral-500">
+            <p className="mb-6 text-xs uppercase tracking-[0.4em] text-ink/50">
               Start a Conversation
             </p>
 
-            <h2 className="text-6xl font-black uppercase leading-none">
+            <h2 className="font-display text-6xl uppercase leading-[0.9] tracking-tight">
               Let's Build
               <br />
               Something
@@ -50,7 +50,7 @@ export default function Contact() {
               Worth Watching.
             </h2>
 
-            <p className="mt-8 max-w-md text-neutral-600 leading-8">
+            <p className="mt-8 max-w-md text-ink/70 leading-8">
               Whether you're launching a brand, redesigning your digital
               presence, or creating your next campaign—we'd love to hear your
               vision.
@@ -67,44 +67,44 @@ export default function Contact() {
           {/* Right */}
           <form className="space-y-12">
             <div>
-              <label className="mb-3 block text-xs uppercase tracking-[0.3em] text-neutral-500">
+              <label className="mb-3 block text-xs uppercase tracking-[0.3em] text-ink/50">
                 Name
               </label>
 
               <input
                 type="text"
                 placeholder="Who are you?"
-                className="w-full border-b border-neutral-300 bg-transparent pb-4 text-2xl outline-none transition-all placeholder:text-neutral-300 focus:border-black"
+                className="w-full border-b border-ink/25 bg-transparent pb-4 text-2xl outline-none transition-all placeholder:text-ink/30 focus:border-green"
               />
             </div>
 
             <div>
-              <label className="mb-3 block text-xs uppercase tracking-[0.3em] text-neutral-500">
+              <label className="mb-3 block text-xs uppercase tracking-[0.3em] text-ink/50">
                 Email
               </label>
 
               <input
                 type="email"
                 placeholder="you@example.com"
-                className="w-full border-b border-neutral-300 bg-transparent pb-4 text-2xl outline-none transition-all placeholder:text-neutral-300 focus:border-black"
+                className="w-full border-b border-ink/25 bg-transparent pb-4 text-2xl outline-none transition-all placeholder:text-ink/30 focus:border-green"
               />
             </div>
 
             <div>
-              <label className="mb-3 block text-xs uppercase tracking-[0.3em] text-neutral-500">
+              <label className="mb-3 block text-xs uppercase tracking-[0.3em] text-ink/50">
                 Your Story
               </label>
 
               <textarea
                 rows={5}
                 placeholder="Tell us about your vision..."
-                className="w-full resize-none border-b border-neutral-300 bg-transparent pb-4 text-2xl outline-none transition-all placeholder:text-neutral-300 focus:border-black"
+                className="w-full resize-none border-b border-ink/25 bg-transparent pb-4 text-2xl outline-none transition-all placeholder:text-ink/30 focus:border-green"
               />
             </div>
 
             <button
               type="submit"
-              className="group mt-10 inline-flex items-center gap-4 border border-black px-8 py-5 text-sm font-semibold uppercase tracking-[0.3em] transition-all duration-300 hover:bg-black hover:text-white"
+              className="vf-pill mt-10 px-8! py-5! text-sm! tracking-[0.25em]!"
             >
               Frame My Story
 
@@ -117,12 +117,12 @@ export default function Contact() {
         </div>
 
         {/* Footer */}
-        <div className="mt-40 border-t border-neutral-200 pt-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <p className="text-neutral-500 uppercase tracking-[0.3em] text-xs">
+        <div className="mt-40 border-t border-ink/15 pt-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <p className="text-ink/50 uppercase tracking-[0.3em] text-xs">
             © 2026 VOID FRAME
           </p>
 
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-ink/50">
             Enough scrolling. Let's make something unforgettable.
           </p>
         </div>

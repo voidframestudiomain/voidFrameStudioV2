@@ -25,8 +25,14 @@ export default function Home() {
 
       <RecentProjects onProgress={setProjectsProgress} />
       <Workflow />
-       <FunFact />
+
+      {/* Spectrum rules mark each hand-off between color blocks —
+          lilac → ink → yellow → beige → ink. */}
+      <div className="vf-spectrum vf-bleed" />
+      <FunFact />
+      <div className="vf-spectrum vf-bleed" />
       <Contact />
+      <div className="vf-spectrum vf-bleed" />
       <About />
 
       {/* <Cafehero />

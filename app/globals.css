@@ -1,46 +1,197 @@
 @import "tailwindcss";
 
 @theme {
-  --font-family-sans: var(--font-pp-mori), sans-serif;
-  --font-family-display: var(--font-anton), sans-serif;
+  /* NOTE: Tailwind v4 generates font utilities from `--font-*`, not
+     `--font-family-*`. The old keys never produced a `font-display`
+     class, so every `font-display` in the app was silently a no-op. */
+  --font-sans: var(--font-pp-mori), sans-serif;
+  --font-display: var(--font-anton), sans-serif;
 
-  --color-void: #0a0a0a;
-  --color-surface: #111111;
-  --color-border: #1f1f1f;
-  --color-muted: #71717a;
-  --color-accent: #e8e0d0;
-  /* Page background — referenced as bg-bg / text-bg via Tailwind, or
-     var(--color-bg) directly, instead of hardcoding #ffe500 elsewhere. */
-  --color-bg: #ffe500;
+  /* ── Yestalgia palette ────────────────────────────────────────────────
+     Lifted from decathlonyestalgia.com's stylesheet.
+     ------------------------------------------------------------------- */
+  --color-beige: #f1f3ed; /* off-white paper */
+  --color-lilac: #e9dae6; /* lavender-pink, the hero surface */
+  --color-ink: #222827; /* soft near-black, for body copy + dark panels */
+  --color-green: #00966e;
+  --color-pink: #eaa0cd;
+  --color-yellow: #d7dd44; /* acid lime — the signature UI color */
+  --color-orange: #f09341;
+  --color-blue: #7ca8d2;
+
+  /* Pure black, used ONLY for graphic outlines and offset shadows. This is
+     deliberately not --color-ink: the reference sets soft ink for reading
+     text but true #000 for every stroke and drop shadow, and that contrast
+     is what makes the shapes look printed rather than rendered. */
+  --color-outline: #000000;
+
+  --color-bg: var(--color-beige);
 }
 
-html {
-  scroll-behavior: smooth;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    /* Lilac is the landing surface — the grid overlay and floating shapes
+       read against it exactly as they do in the reference. Beige stays
+       available for the lighter product-style panels further down. */
+    background-color: var(--color-lilac);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: var(--color-yellow);
+    color: var(--color-outline);
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-beige);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-outline);
+  }
 }
 
-body {
-  font-family: var(--font-family-sans);
-  font-weight: 400;
-  background-color: var(--color-bg);
-  color: #e8e0d0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer components {
+  /* ── Hard offset shadow ───────────────────────────────────────────────
+     The single most defining trait of this style. Zero blur, zero spread,
+     pure black, offset down-right — it reads as flat printed layers
+     rather than a lit 3D surface. Never swap these for a blurred shadow.
+     ------------------------------------------------------------------- */
+  .vf-hard {
+    box-shadow: 4px 4px 0 0 var(--color-outline);
+  }
+  .vf-hard-lg {
+    box-shadow: 8px 8px 0 0 var(--color-outline);
+  }
+
+  /* ── Pill button ──────────────────────────────────────────────────────
+     Acid lime, black outline, hard shadow. Hover translates the element
+     INTO its own shadow so the button appears to physically press down —
+     the offset shrinks by exactly the distance the element moves, which
+     keeps the shadow's far corner pinned in place.
+     ------------------------------------------------------------------- */
+  .vf-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 2px solid var(--color-outline);
+    border-radius: 8px;
+    background: var(--color-yellow);
+    padding: 0.55rem 1.15rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--color-outline);
+    box-shadow: 4px 4px 0 0 var(--color-outline);
+    transition:
+      transform 0.14s ease-out,
+      box-shadow 0.14s ease-out,
+      background-color 0.14s ease-out;
+  }
+  .vf-pill:hover {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 0 var(--color-outline);
+  }
+  .vf-pill:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0 0 0 0 var(--color-outline);
+  }
+  .vf-pill--pink {
+    background: var(--color-pink);
+  }
+  .vf-pill--orange {
+    background: var(--color-orange);
+  }
+  .vf-pill--green {
+    background: var(--color-green);
+    color: var(--color-beige);
+  }
+
+  /* ── Sticker text: white fill over a zero-blur black offset ──────────
+     White is baked in HERE, not via a separate text-* utility — the pair
+     must never drift apart (black fill + black shadow = unreadable blob).
+     An accent span inside can still override the fill with its own
+     text-* utility, since utilities beat this components layer.
+
+     `-masked` is for text whose letters sit inside overflow-hidden reveal
+     wrappers (the hero): those masks clip each letter's text-shadow, so
+     it uses drop-shadow instead, which shadows the final composited
+     glyphs after clipping.
+     ------------------------------------------------------------------- */
+  .vf-text-hard {
+    color: #ffffff;
+    text-shadow: 6px 6px 0 var(--color-outline);
+  }
+  .vf-text-hard-sm {
+    color: #ffffff;
+    text-shadow: 3px 3px 0 var(--color-outline);
+  }
+  .vf-text-hard-masked {
+    color: #ffffff;
+    filter: drop-shadow(6px 6px 0 var(--color-outline));
+  }
+
+  /* ── Backdrops ────────────────────────────────────────────────────────
+     Graph-paper grid and horizontal stripe bands. Both are pure CSS
+     gradients so they cost nothing and scale to any section size.
+     ------------------------------------------------------------------- */
+  .vf-grid {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.65) 1.5px, transparent 1.5px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.65) 1.5px, transparent 1.5px);
+    background-size: 92px 92px;
+  }
+  .vf-stripes {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      var(--color-pink) 0 26px,
+      color-mix(in srgb, var(--color-pink) 42%, #fff) 26px 52px
+    );
+  }
+
+  /* Full-bleed spectrum rule — hard stops, so it reads as printed color
+     bars rather than a gradient. */
+  .vf-spectrum {
+    height: 8px;
+    border-top: 2px solid var(--color-outline);
+    border-bottom: 2px solid var(--color-outline);
+    background: linear-gradient(
+      to right,
+      var(--color-green) 0 16.66%,
+      var(--color-yellow) 16.66% 33.33%,
+      var(--color-orange) 33.33% 50%,
+      var(--color-pink) 50% 66.66%,
+      var(--color-blue) 66.66% 83.33%,
+      var(--color-outline) 83.33% 100%
+    );
+  }
 }
 
-::selection {
-  /* background: #e8e0d0; */
-  background-color: var(--color-bg);
-  color: #0a0a0a;
+@layer utilities {
+  /* Escapes the 40px page gutter set on <main>, for full-bleed sections. */
+  .vf-bleed {
+    margin-left: -40px;
+    margin-right: -40px;
+    width: calc(100% + 80px);
+  }
 }
 
-::-webkit-scrollbar {
-  width: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: #0a0a0a;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #1f1f1f;
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .vf-pill {
+    transition: none;
+  }
 }

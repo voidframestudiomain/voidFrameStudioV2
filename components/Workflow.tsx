@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 
 /**
  * VOID FRAME — parallax hero
@@ -16,19 +17,24 @@ import { useEffect, useRef, useState } from "react";
  * -----------------------------------------------------------
  */
 
+// Accents cycle through the Yestalgia palette instead of the previous
+// neon set, so the floating cards read as one collection against the ink
+// stage rather than eight unrelated highlights.
 const IMAGES = [
-  { src: "https://picsum.photos/id/1015/360/460", top: "8%",  left: "6%",  w: 200, speed: 260, rotate: -6,  accent: "#FF3D6E" },
-  { src: "https://picsum.photos/id/1025/360/460", top: "58%", left: "10%", w: 170, speed: 420, rotate: 4,   accent: "#D4FF3D" },
-  { src: "https://picsum.photos/id/1035/460/360", top: "14%", left: "78%", w: 220, speed: 200, rotate: 5,   accent: "#8B3DFF" },
-  { src: "https://picsum.photos/id/1041/360/460", top: "62%", left: "76%", w: 190, speed: 340, rotate: -4,  accent: "#FFB93D" },
-  { src: "https://picsum.photos/id/1050/460/360", top: "4%",  left: "38%", w: 180, speed: 480, rotate: -3,  accent: "#FF3D6E" },
-  { src: "https://picsum.photos/id/1060/360/460", top: "68%", left: "42%", w: 160, speed: 160, rotate: 6,   accent: "#8B3DFF" },
-  { src: "https://picsum.photos/id/1074/360/460", top: "34%", left: "2%",  w: 150, speed: 380, rotate: 3,   accent: "#D4FF3D" },
-  { src: "https://picsum.photos/id/1084/360/460", top: "32%", left: "88%", w: 150, speed: 300, rotate: -5,  accent: "#FFB93D" },
+  { src: "https://picsum.photos/id/1015/360/460", top: "8%",  left: "6%",  w: 200, speed: 260, rotate: -6,  accent: "var(--color-pink)" },
+  { src: "https://picsum.photos/id/1025/360/460", top: "58%", left: "10%", w: 170, speed: 420, rotate: 4,   accent: "var(--color-yellow)" },
+  { src: "https://picsum.photos/id/1035/460/360", top: "14%", left: "78%", w: 220, speed: 200, rotate: 5,   accent: "var(--color-blue)" },
+  { src: "https://picsum.photos/id/1041/360/460", top: "62%", left: "76%", w: 190, speed: 340, rotate: -4,  accent: "var(--color-orange)" },
+  { src: "https://picsum.photos/id/1050/460/360", top: "4%",  left: "38%", w: 180, speed: 480, rotate: -3,  accent: "var(--color-green)" },
+  { src: "https://picsum.photos/id/1060/360/460", top: "68%", left: "42%", w: 160, speed: 160, rotate: 6,   accent: "var(--color-blue)" },
+  { src: "https://picsum.photos/id/1074/360/460", top: "34%", left: "2%",  w: 150, speed: 380, rotate: 3,   accent: "var(--color-yellow)" },
+  { src: "https://picsum.photos/id/1084/360/460", top: "32%", left: "88%", w: 150, speed: 300, rotate: -5,  accent: "var(--color-orange)" },
 ];
 
 export default function VoidFrameParallaxHero() {
-  const sectionRef = useRef(null);
+  // Typed, not bare useRef(null) — that inferred `never` and failed the
+  // production type check on sectionRef.current.getBoundingClientRect().
+  const sectionRef = useRef<HTMLElement>(null);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -58,7 +64,7 @@ export default function VoidFrameParallaxHero() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="vf-parallax-section -mx-[40px] w-[calc(100%+80px)]" >
+    <section ref={sectionRef} className="vf-parallax-section vf-bleed" >
       <style>{`
         .vf-parallax-section {
           position: relative;
@@ -72,6 +78,10 @@ export default function VoidFrameParallaxHero() {
           display: flex;
           align-items: center;
           justify-content: center;
+          /* Dark color-block. The title is beige, so this section MUST
+             carry its own background — on the beige page it was
+             beige-on-beige and effectively invisible. */
+          background: var(--color-ink);
         }
         .vf-img-layer {
           position: absolute;
@@ -82,8 +92,11 @@ export default function VoidFrameParallaxHero() {
           position: absolute;
           border-radius: 4px;
           overflow: hidden;
-          border: 2px solid var(--accent);
-          box-shadow: 0 20px 50px rgba(0,0,0,0.55);
+          /* Black outline with a hard offset shadow in the card's own
+             accent hue — the blurred drop shadow that was here reads as
+             lit depth, which fights the flat printed look everywhere else. */
+          border: 3px solid var(--color-outline);
+          box-shadow: 8px 8px 0 var(--accent, var(--color-beige));
           will-change: transform;
         }
         .vf-img-card img {
@@ -104,7 +117,7 @@ export default function VoidFrameParallaxHero() {
           font-size: clamp(48px, 11vw, 160px);
           line-height: 0.92;
           letter-spacing: -0.02em;
-          color: #F5F3EF;
+          color: var(--color-beige);
           margin: 0;
           text-transform: uppercase;
         }
@@ -114,7 +127,7 @@ export default function VoidFrameParallaxHero() {
           font-size: 15px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: #D4FF3D;
+          color: var(--color-yellow);
         }
           .vf-text-layer {
   position: absolute;
@@ -126,16 +139,21 @@ export default function VoidFrameParallaxHero() {
 }
 
 .vf-title {
-  font-size: clamp(5rem, 12vw, 12rem);
-  font-weight: 900;
-  color: #fff;
+  font-family: var(--font-anton), sans-serif;
+  font-size: clamp(5rem, 13vw, 13rem);
+  letter-spacing: -0.01em;
+  color: var(--color-beige);
   white-space: nowrap;
 }
 
+/* The "F" scales to ~60x on scroll, so whatever color it is becomes a
+   full-screen wipe at the end of the section. Green makes that the
+   loudest brand moment on the page instead of a flat white flash. */
 .frame {
   display: inline-block;
   transform-origin: center;
   will-change: transform;
+  color: var(--color-green);
 }
 
         .vf-fade-hint {
@@ -148,7 +166,7 @@ export default function VoidFrameParallaxHero() {
           font-size: 12px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: rgba(245,243,239,0.4);
+          color: color-mix(in srgb, var(--color-beige) 45%, transparent);
         }
       `}</style>
 
@@ -166,10 +184,10 @@ export default function VoidFrameParallaxHero() {
                   left: img.left,
                   width: img.w,
                   height: img.w * 1.25,
-                //   "--accent": img.accent,
+                  ["--accent" as string]: img.accent,
                   transform: `translateY(${translateY}px) rotate(${img.rotate}deg)`,
                   opacity,
-                }}
+                } as CSSProperties}
               >
                 <img src={img.src} alt="" />
               </div>

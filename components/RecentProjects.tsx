@@ -3,11 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
+// `accent` gives each project its own palette hue, painted as a bar along
+// the bottom of its card. Four different hues, never repeating — same rule
+// the reference site follows for adjacent color blocks.
 const projects = [
-  { id: "01", name: "Arclight Studio", category: "Brand & Web", year: "2024", link: "arclightstudio.com", description: "A full brand identity and headless site rebuild for a boutique lighting studio.", image: "https://lemansclassic.richardmille.com/.netlify/images?w=3456&h=2160&fm=webp&url=%2Fmedias%2Fchapters%2Fdeparture%2Fi0.jpg" },
-  { id: "02", name: "Meridian Capital", category: "Web & Motion", year: "2024", link: "meridiancapital.com", description: "Scroll-driven storytelling and motion design for a private investment firm.", image: "https://lemansclassic.richardmille.com/.netlify/images?w=3456&fm=webp&url=%2Fmedias%2Fchapters%2Fdeparture%2Fi1.jpg" },
-  { id: "03", name: "Forma Objects", category: "E-commerce", year: "2025", link: "formaobjects.com", description: "A custom Shopify build for a minimalist furniture and object design house.", image: "https://lemansclassic.richardmille.com/.netlify/images?w=3456&h=2160&fm=webp&url=%2Fmedias%2Fchapters%2Fcurtain%2Fi1.jpg" },
-  { id: "04", name: "Dusk Collective", category: "Brand Identity", year: "2025", link: "duskcollective.com", description: "Naming, identity, and visual system for an emerging fashion collective.", image: "https://lemansclassic.richardmille.com/.netlify/images?w=3456&h=2160&fm=webp&url=%2Fmedias%2Fchapters%2Fcurtain%2Fi2.png" },
+  { id: "01", name: "Arclight Studio", category: "Brand & Web", year: "2024", link: "arclightstudio.com", accent: "var(--color-green)", description: "A full brand identity and headless site rebuild for a boutique lighting studio.", image: "https://lemansclassic.richardmille.com/.netlify/images?w=3456&h=2160&fm=webp&url=%2Fmedias%2Fchapters%2Fdeparture%2Fi0.jpg" },
+  { id: "02", name: "Meridian Capital", category: "Web & Motion", year: "2024", link: "meridiancapital.com", accent: "var(--color-yellow)", description: "Scroll-driven storytelling and motion design for a private investment firm.", image: "https://lemansclassic.richardmille.com/.netlify/images?w=3456&fm=webp&url=%2Fmedias%2Fchapters%2Fdeparture%2Fi1.jpg" },
+  { id: "03", name: "Forma Objects", category: "E-commerce", year: "2025", link: "formaobjects.com", accent: "var(--color-orange)", description: "A custom Shopify build for a minimalist furniture and object design house.", image: "https://lemansclassic.richardmille.com/.netlify/images?w=3456&h=2160&fm=webp&url=%2Fmedias%2Fchapters%2Fcurtain%2Fi1.jpg" },
+  { id: "04", name: "Dusk Collective", category: "Brand Identity", year: "2025", link: "duskcollective.com", accent: "var(--color-pink)", description: "Naming, identity, and visual system for an emerging fashion collective.", image: "https://lemansclassic.richardmille.com/.netlify/images?w=3456&h=2160&fm=webp&url=%2Fmedias%2Fchapters%2Fcurtain%2Fi2.png" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -241,8 +244,8 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
             transform: `translateY(${lerp(12, 0, headingOpacity)}px)`,
           }}
         >
-          <span className="whitespace-nowrap text-xs uppercase tracking-[0.2em] text-black">
-            ( Selected Projects )
+          <span className="vf-pill vf-pill--green whitespace-nowrap text-xs!">
+            Selected Projects
           </span>
         </div>
 
@@ -273,7 +276,7 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
                 onMouseLeave={() => setHoveredId(null)}
                 // flex-grow IS allowed a transition — it only changes on
                 // discrete hover events, not on every scroll tick.
-                className="relative h-full min-w-0 shrink-0 basis-0 cursor-pointer overflow-hidden rounded transition-[flex-grow] duration-500 ease-out"
+                className="vf-hard relative h-full min-w-0 shrink-0 basis-0 cursor-pointer overflow-hidden rounded-lg border-2 border-outline transition-[flex-grow] duration-500 ease-out"
                 style={{ flexGrow }}
               >
                 <Image
@@ -287,11 +290,21 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
                 />
                 {/* darkening gradient fades in as the row expands */}
                 <div
-                  className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"
+                  className="absolute inset-0 bg-linear-to-t from-ink/70 via-ink/10 to-transparent"
                   style={{ opacity: progress }}
                 />
+                {/* Accent bar: sweeps in from the left as the row expands,
+                    and goes full-height-thick on the active card. */}
+                <div
+                  className="absolute bottom-0 left-0 origin-left transition-[height] duration-500 ease-out"
+                  style={{
+                    background: project.accent,
+                    width: `${progress * 100}%`,
+                    height: isActive ? 8 : 4,
+                  }}
+                />
                 <span
-                  className="absolute left-3 top-3 text-[10px] tracking-widest text-white/70"
+                  className="absolute left-3 top-3 text-[10px] tracking-widest text-beige/80"
                   style={{ opacity: progress }}
                 >
                   {project.id}
@@ -318,12 +331,12 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
           {/* Bottom-left: project name + category + a scramble-revealed blurb */}
           <div className="flex max-w-xl flex-col gap-1 ">
             <div className="flex items-baseline gap-4">
-              <p className="font-display text-3xl font-black uppercase text-black">{active.name}</p>
-              <p className="text-xs uppercase tracking-widest text-black/60">
+              <p className="font-display text-4xl uppercase tracking-tight vf-text-hard-sm">{active.name}</p>
+              <p className="text-xs uppercase tracking-widest text-ink/60">
                 {active.category} — {active.year}
               </p>
             </div>
-            <p className="font-mono text-xs leading-relaxed text-black/50">
+            <p className="font-mono text-xs leading-relaxed text-ink/50">
               <ScrambleText text={active.description} />
             </p>
           </div>
@@ -333,7 +346,7 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
             href={`https://${active.link}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="pointer-events-auto whitespace-nowrap text-xs uppercase tracking-widest text-black/60 underline decoration-black/40 underline-offset-4 transition-colors hover:text-black hover:decoration-black"
+            className="pointer-events-auto whitespace-nowrap text-xs uppercase tracking-widest text-ink/60 underline decoration-ink/40 underline-offset-4 transition-colors hover:text-green hover:decoration-green"
           >
             {active.link} ↗
           </a>

@@ -69,8 +69,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${ppMori.variable} ${anton.variable} dark `}>
-      <body className="min-h-screen bg-zinc-950 text-white antialiased overflow-x-hidden">
+    <html lang="en" className={`${ppMori.variable} ${anton.variable}`}>
+      <body className="min-h-screen bg-lilac text-ink antialiased overflow-x-hidden">
         <LenisProvider>{children}</LenisProvider>
         <Toaster position="top-center" richColors closeButton />
       </body>
