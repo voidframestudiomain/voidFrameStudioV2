@@ -7,17 +7,28 @@
   --font-sans: var(--font-pp-mori), sans-serif;
   --font-display: var(--font-anton), sans-serif;
 
-  /* ── Yestalgia palette ────────────────────────────────────────────────
-     Lifted from decathlonyestalgia.com's stylesheet.
+  /* ── Field Guide palette ──────────────────────────────────────────────
+     Written from scratch, deliberately NOT the beige + lilac + acid-lime
+     set every neo-brutalist site on the web currently shares.
+
+     Two rules hold it together:
+     1. The surfaces are warm and yellow-green — manila envelope and
+        pressed pistachio. Almost nobody uses a tinted paper as the page
+        ground, which is what makes the site read as printed stock instead
+        of "white with stickers on it".
+     2. The accents are pigments, not screen colors: verdigris, brass,
+        vermillion, madder rose, indigo. All five sit at similar weight,
+        so any of them can carry a panel without one shouting.
      ------------------------------------------------------------------- */
-  --color-beige: #f1f3ed; /* off-white paper */
-  --color-lilac: #e9dae6; /* lavender-pink, the hero surface */
-  --color-ink: #222827; /* soft near-black, for body copy + dark panels */
-  --color-green: #00966e;
-  --color-pink: #eaa0cd;
-  --color-yellow: #d7dd44; /* acid lime — the signature UI color */
-  --color-orange: #f09341;
-  --color-blue: #7ca8d2;
+  --color-beige: #f6f1df; /* manila — the light paper stock */
+  --color-pistachio: #cfd8b6; /* pressed pistachio — the hero surface */
+  --color-ink: #1b1e17; /* near-black with an olive cast, matches the paper */
+  --color-green: #0e6b57; /* verdigris */
+  --color-pink: #cc4d76; /* madder rose — kept just light enough that the
+                            black pill text on it still clears 4.5:1 */
+  --color-yellow: #e8a21c; /* brass — the signature UI color */
+  --color-orange: #d8451f; /* vermillion */
+  --color-blue: #3b4c8a; /* indigo */
 
   /* Pure black, used ONLY for graphic outlines and offset shadows. This is
      deliberately not --color-ink: the reference sets soft ink for reading
@@ -36,10 +47,12 @@
   body {
     font-family: var(--font-sans);
     font-weight: 400;
-    /* Lilac is the landing surface — the grid overlay and floating shapes
-       read against it exactly as they do in the reference. Beige stays
-       available for the lighter product-style panels further down. */
-    background-color: var(--color-lilac);
+    /* Pistachio is the landing surface — deep enough that the white grid
+       overlay and the floating shapes both read against it. Manila stays
+       available for the lighter product-style panels further down; the
+       two are ~11% apart in lightness AND differ in hue, so a manila card
+       still separates cleanly from the page behind it. */
+    background-color: var(--color-pistachio);
     color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

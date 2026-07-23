@@ -673,7 +673,7 @@ export default function ClientSimulator() {
             className="vf-hard-lg relative overflow-hidden rounded-xl border-2 border-outline bg-beige"
           >
             {/* Fake window chrome */}
-            <div className="flex items-center gap-2 border-b-2 border-outline bg-lilac px-4 py-2.5">
+            <div className="flex items-center gap-2 border-b-2 border-outline bg-pistachio px-4 py-2.5">
               <span className="h-3 w-3 rounded-full border-2 border-outline bg-pink" />
               <span className="h-3 w-3 rounded-full border-2 border-outline bg-yellow" />
               <span className="h-3 w-3 rounded-full border-2 border-outline bg-green" />

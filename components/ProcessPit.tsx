@@ -487,7 +487,7 @@ export default function ProcessPit() {
           }}
         >
           {/* Taped-on figure label */}
-          <div className="vf-hard pointer-events-none absolute left-4 top-4 z-10 -rotate-2 rounded border-2 border-outline bg-lilac px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-ink">
+          <div className="vf-hard pointer-events-none absolute left-4 top-4 z-10 -rotate-2 rounded border-2 border-outline bg-pistachio px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-ink">
             fig. 1 — the creative process (accurate)
           </div>
 

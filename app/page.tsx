@@ -29,7 +29,7 @@ export default function Home() {
       <RecentProjects onProgress={setProjectsProgress} />
 
       {/* Spectrum rules mark each hand-off between color blocks —
-          lilac → ink → yellow → blue → pink → beige → ink. */}
+          pistachio → ink → yellow → blue → pink → beige → ink. */}
       <div className="vf-spectrum vf-bleed" />
       {/* <Workflow /> */}
       {/* Workflow's old slot: the physics-pit parody of agency process

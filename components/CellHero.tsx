@@ -83,9 +83,15 @@ export default function CellHero() {
       ref={sectionRef}
       style={
         {
-          "--void": "#050907",
+          /* Warmed to sit inside the Field Guide palette: the void picks up
+             the same olive cast as --color-ink and the mist is manila, so
+             this dark section reads as the same print job as the rest of
+             the page rather than a borrowed cyber-mint hero. The accent
+             stays in the cool range because the cell AVIFs are tinted that
+             way — recoloring the glow alone would fight the artwork. */
+          "--void": "#080a07",
           "--cell": "#52ecd0",
-          "--mist": "#eaf3ef",
+          "--mist": "#f6f1df",
         } as React.CSSProperties
       }
       className="relative isolate min-h-screen w-full overflow-hidden bg-[color:var(--void)] text-[color:var(--mist)]"

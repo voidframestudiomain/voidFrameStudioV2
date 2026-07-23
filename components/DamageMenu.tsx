@@ -25,7 +25,10 @@ import { Arc, Bolt, Dot, Triangle, Zigzag, type Hue } from "./Memphis";
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
-const PAPER = "#fdfcf7";
+/* Thermal receipt stock. Warmer and lighter than --color-beige on purpose:
+   it has to read as a fresh till roll sitting ON the manila page, so it
+   can't be the same value as the paper behind it. */
+const PAPER = "#fefaee";
 const QTY_CAP = 3;
 
 interface Service {
