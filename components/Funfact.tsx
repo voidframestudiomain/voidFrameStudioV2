@@ -50,15 +50,17 @@ export default function FunFact() {
           </p>
 
           {/* The three red-flag quotes as pills — same UI unit as the nav,
-              which is what ties the system together across sections. */}
+              which ties the system together across sections, but as flat
+              .vf-tag (no shadow / press / pointer): they're quotes to
+              read, not things to click. */}
           <div className="mt-8 flex flex-col items-start gap-4">
-            <span className="vf-pill vf-pill--pink text-lg! tracking-normal!">
+            <span className="vf-tag vf-tag--pink text-lg! tracking-normal!">
               "Can we copy this?"
             </span>
-            <span className="vf-pill vf-pill--orange text-lg! tracking-normal!">
+            <span className="vf-tag vf-tag--orange text-lg! tracking-normal!">
               "Make the logo bigger."
             </span>
-            <span className="vf-pill text-lg! tracking-normal!">
+            <span className="vf-tag text-lg! tracking-normal!">
               "Let's play it safe."
             </span>
           </div>

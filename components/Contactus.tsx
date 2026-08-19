@@ -357,7 +357,7 @@ export default function Contact() {
       <div className="relative z-10 mx-auto max-w-7xl px-10">
         {/* ── Heading ── */}
         <div className="max-w-2xl">
-          <span className="vf-pill vf-pill--orange text-xs!">Final frame · Paperwork required</span>
+          <span className="vf-tag vf-tag--orange text-xs!">Final frame · Paperwork required</span>
           <h2 className="font-display mt-8 text-[clamp(3rem,8vw,7.5rem)] uppercase leading-[0.85] tracking-tight vf-text-hard">
             Speak into
             <br />

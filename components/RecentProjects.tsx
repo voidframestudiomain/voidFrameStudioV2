@@ -244,7 +244,7 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
             transform: `translateY(${lerp(12, 0, headingOpacity)}px)`,
           }}
         >
-          <span className="vf-pill vf-pill--green whitespace-nowrap text-xs!">
+          <span className="vf-tag vf-tag--green whitespace-nowrap text-xs!">
             Selected Projects
           </span>
         </div>

@@ -238,7 +238,7 @@ export default function DamageMenu() {
       <div className="relative z-10 mx-auto max-w-7xl px-10">
         {/* ── Heading ── */}
         <div className="max-w-2xl">
-          <span className="vf-pill text-xs!">Menu · No substitutions</span>
+          <span className="vf-tag text-xs!">Menu · No substitutions</span>
           <h2 className="font-display mt-8 text-[clamp(3rem,7vw,6.5rem)] uppercase leading-[0.85] tracking-tight vf-text-hard">
             What&apos;s the
             <br />

@@ -427,7 +427,7 @@ export default function ProcessPit() {
         {/* ── Copy ── */}
         <div className="flex flex-wrap items-end justify-between gap-10">
           <div className="max-w-2xl">
-            <span className="vf-pill vf-pill--pink text-xs!">How we work · allegedly</span>
+            <span className="vf-tag vf-tag--pink text-xs!">How we work · allegedly</span>
 
             <h2
               className="font-display mt-8 text-[clamp(3rem,7vw,6.5rem)] uppercase leading-[0.85] tracking-tight"

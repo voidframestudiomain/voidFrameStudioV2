@@ -59,6 +59,14 @@
   ::-webkit-scrollbar-thumb {
     background: var(--color-outline);
   }
+
+  /* Tailwind v4's preflight resets buttons to `cursor: default`, which
+     erases the single strongest clickability cue there is. Every enabled
+     button in this app is genuinely interactive, so restore the pointer
+     globally; disabled states opt out via `disabled:cursor-not-allowed`. */
+  button:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 @layer components {
@@ -114,6 +122,43 @@
     background: var(--color-orange);
   }
   .vf-pill--green {
+    background: var(--color-green);
+    color: var(--color-beige);
+  }
+
+  /* ── Tag / label pill ─────────────────────────────────────────────────
+     The non-interactive sibling of .vf-pill, for section eyebrows and
+     decorative badges. Identical pill anatomy — same outline, radius,
+     type and palette — with ONE deliberate difference: it lies FLAT on
+     the page. No offset shadow, no hover press, no pointer. The raised
+     shadow + press motion are the "clickable" signal in this system, so
+     they're reserved for real buttons and links. Never put .vf-tag on a
+     <button> or <a>.
+     ------------------------------------------------------------------- */
+  .vf-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 2px solid var(--color-outline);
+    border-radius: 8px;
+    background: var(--color-yellow);
+    padding: 0.55rem 1.15rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--color-outline);
+  }
+  .vf-tag--pink {
+    background: var(--color-pink);
+  }
+  .vf-tag--orange {
+    background: var(--color-orange);
+  }
+  .vf-tag--yellow {
+    background: var(--color-yellow);
+  }
+  .vf-tag--green {
     background: var(--color-green);
     color: var(--color-beige);
   }

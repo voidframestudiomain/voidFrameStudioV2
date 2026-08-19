@@ -645,7 +645,7 @@ export default function ClientSimulator() {
       <div className="relative z-10 mx-auto grid max-w-7xl gap-14 px-10 lg:grid-cols-2">
         {/* ── Copy ── */}
         <div>
-          <span className="vf-pill vf-pill--pink text-xs!">Interactive · Exhibit A</span>
+          <span className="vf-tag vf-tag--pink text-xs!">Interactive · Exhibit A</span>
 
           <h2
             ref={headingRef}
