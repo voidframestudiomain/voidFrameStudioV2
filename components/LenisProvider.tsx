@@ -12,6 +12,8 @@ export default function LenisProvider({ children }: { children: ReactNode }) {
       wheelMultiplier: 1,
       touchMultiplier: 2,
       infinite: false,
+      // Smooth-scroll in-page links like the header's "Let's Work" → #contact.
+      anchors: true,
     });
 
     function raf(time: number) {

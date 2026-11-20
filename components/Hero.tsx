@@ -62,12 +62,16 @@ const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
 // avoid two zones: bottom-LEFT (the headline) and bottom-RIGHT (the
 // collapsed RecentProjects thumbnail row, which sits ~80px off the bottom
 // edge). Everything else is fair game.
+//
+// `phone` is a width override for small screens: the desktop sizes are
+// tuned for a wide canvas and would bury a 390px viewport. (SVG height
+// follows the viewBox, so overriding width alone scales the whole shape.)
 const DECOR = [
-  { Shape: Arc, id: "d1", hue: "pink", size: 190, rotate: 12, top: "16%", left: "6%", delay: 120 },
-  { Shape: Dot, id: "d2", hue: "orange", size: 130, rotate: 0, top: "18%", left: "76%", delay: 220 },
-  { Shape: Zigzag, id: "d3", hue: "blue", size: 165, rotate: -8, top: "44%", left: "86%", delay: 320 },
-  { Shape: Bolt, id: "d4", hue: "yellow", size: 120, rotate: -14, top: "50%", left: "2%", delay: 420 },
-  { Shape: Triangle, id: "d5", hue: "green", size: 105, rotate: 18, top: "8%", left: "44%", delay: 520 },
+  { Shape: Arc, id: "d1", hue: "pink", size: 190, rotate: 12, top: "16%", left: "6%", delay: 120, phone: "max-sm:w-28" },
+  { Shape: Dot, id: "d2", hue: "orange", size: 130, rotate: 0, top: "18%", left: "76%", delay: 220, phone: "max-sm:w-20" },
+  { Shape: Zigzag, id: "d3", hue: "blue", size: 165, rotate: -8, top: "44%", left: "86%", delay: 320, phone: "max-sm:w-24" },
+  { Shape: Bolt, id: "d4", hue: "yellow", size: 120, rotate: -14, top: "50%", left: "2%", delay: 420, phone: "max-sm:hidden" },
+  { Shape: Triangle, id: "d5", hue: "green", size: 105, rotate: 18, top: "8%", left: "44%", delay: 520, phone: "max-sm:w-16" },
 ] as const;
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -83,7 +87,18 @@ export default function Hero({ projectsProgress = 0 }: HeroProps) {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const letters = useMemo(() => HEADING.split(""), []);
+  // Letters are grouped per word so the headline can only wrap BETWEEN
+  // words on narrow screens, never mid-word. Each letter keeps its global
+  // index so the stagger still sweeps across the whole line.
+  const words = useMemo(() => {
+    let index = 0;
+    return HEADING.split(" ").map((word) => {
+      const letters = word.split("").map((letter) => ({ letter, i: index++ }));
+      index++; // account for the space
+      return letters;
+    });
+  }, []);
+  const letterCount = HEADING.length;
   const chunks = useMemo(() => chunkWords(DESCRIPTION, CHUNK_SIZE), []);
 
   const isHiddenByScroll = projectsProgress > HIDE_THRESHOLD;
@@ -104,11 +119,11 @@ export default function Hero({ projectsProgress = 0 }: HeroProps) {
         }}
       >
         {/* Retro sun, bled off the right edge behind everything else. */}
-        <div className="absolute -right-24 top-1/2 -translate-y-1/2">
-          <Sunset size={420} hue="orange" />
+        <div className="absolute -right-24 top-[36%] -translate-y-1/2 sm:top-1/2">
+          <Sunset size={420} hue="orange" className="max-sm:w-60" />
         </div>
 
-        {DECOR.map(({ Shape, id, hue, size, rotate, top, left, delay }) => (
+        {DECOR.map(({ Shape, id, hue, size, rotate, top, left, delay, phone }) => (
           <div
             key={id}
             className="absolute will-change-transform"
@@ -123,24 +138,28 @@ export default function Hero({ projectsProgress = 0 }: HeroProps) {
               transitionDelay: `${visible ? delay : 0}ms`,
             }}
           >
-            <Shape id={id} hue={hue} size={size} rotate={rotate} />
+            <Shape id={id} hue={hue} size={size} rotate={rotate} className={phone} />
           </div>
         ))}
       </div>
 
-      <div className="absolute bottom-10 left-10 z-20 max-w-4xl">
+      {/* Below lg the collapsed thumbnail row spans the bottom of the
+          screen, so the copy stacks ABOVE it instead of sitting beside it. */}
+      <div className="absolute bottom-48 left-5 right-5 z-20 max-w-4xl sm:left-10 sm:right-10 lg:bottom-10">
         {/* Anton, tight leading, hard black shadow — the display treatment
             the whole style is built around. */}
         {/* -masked variant: the per-letter overflow-hidden wrappers clip a
             text-shadow, so the shadow here is a drop-shadow filter applied
             to the composited glyphs after masking. */}
-        <h1 className="font-display flex flex-wrap text-[clamp(3.5rem,9vw,8rem)] uppercase leading-[0.85] tracking-tight vf-text-hard-masked">
-        {letters.map((letter, i) => {
+        <h1 className="font-display flex flex-wrap gap-x-[0.22em] text-[clamp(2.75rem,13vw,8rem)] uppercase leading-[0.85] tracking-tight vf-text-hard-masked sm:text-[clamp(3.5rem,9vw,8rem)]">
+        {words.map((word, w) => (
+          <span key={w} className="inline-flex whitespace-nowrap">
+        {word.map(({ letter, i }) => {
           // Reveal sweeps left -> right (index order). Hide sweeps in the
           // same visual direction reversed (last letter first), so it
           // reads as the same motion undoing itself rather than a
           // mirror-image animation.
-          const delayIndex = visible ? i : letters.length - 1 - i;
+          const delayIndex = visible ? i : letterCount - 1 - i;
 
           return (
             <span key={i} className="inline-block overflow-hidden">
@@ -157,11 +176,13 @@ export default function Hero({ projectsProgress = 0 }: HeroProps) {
                   transitionDelay: `${delayIndex * LETTER_STAGGER_MS}ms`,
                 }}
               >
-                {letter === " " ? "\u00A0" : letter}
+                {letter}
               </span>
             </span>
           );
         })}
+          </span>
+        ))}
       </h1>
 
       {/* Description: same reveal/hide motion as the heading, just applied

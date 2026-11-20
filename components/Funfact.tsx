@@ -11,11 +11,14 @@ export default function FunFact() {
         WHY?
       </h1>
 
-      {/* Shapes bleed off the right edge, clear of the copy column. */}
+      {/* Shapes bleed off the right edge, clear of the copy column. On
+          phones the copy fills the full width, so the shapes shrink and
+          tuck into the corners, and the bolt (which would cross the quote
+          pills) is dropped. */}
       <div className="pointer-events-none absolute right-0 top-0 h-full w-1/2">
-        <Arc id="ff1" hue="pink" size={210} rotate={-160} className="absolute right-10 top-[12%]" />
-        <Bolt id="ff2" hue="green" size={130} rotate={12} className="absolute right-[38%] top-[42%]" />
-        <Dot id="ff3" hue="blue" size={120} className="absolute right-16 bottom-[14%]" />
+        <Arc id="ff1" hue="pink" size={210} rotate={-160} className="absolute right-10 top-[12%] max-md:-right-6 max-md:top-6 max-md:w-28" />
+        <Bolt id="ff2" hue="green" size={130} rotate={12} className="absolute right-[38%] top-[42%] max-md:hidden" />
+        <Dot id="ff3" hue="blue" size={120} className="absolute right-16 bottom-[14%] max-md:-right-6 max-md:bottom-[30%] max-md:w-20" />
       </div>
 
       <div className="relative z-10 mx-auto flex max-w-7xl flex-col px-10">

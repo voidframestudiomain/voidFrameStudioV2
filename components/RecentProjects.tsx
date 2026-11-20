@@ -144,6 +144,7 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
   const [activeId, setActiveId] = useState<string>(projects[0].id);
   const [progress, setProgress] = useState(0); // 0 = top of section, 1 = fully scrolled through
   const [containerWidth, setContainerWidth] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -153,6 +154,7 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
     // was clipping the last card against the real edge.
     const measure = () => {
       if (sectionRef.current) setContainerWidth(sectionRef.current.clientWidth);
+      setViewportHeight(window.innerHeight);
     };
     measure();
     window.addEventListener("resize", measure);
@@ -191,9 +193,27 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
   const headingOpacity = remap(progress, CONFIG.HEADING_FADE_START, CONFIG.HEADING_FADE_END);
   const infoOpacity = remap(progress, CONFIG.INFO_FADE_START, CONFIG.INFO_FADE_END);
 
-  const collapsedWidth =
-    projects.length * CONFIG.COLLAPSED_THUMB_SIZE +
-    (projects.length - 1) * CONFIG.THUMB_GAP;
+  // ── Small-screen adaptations ──────────────────────────────────────────
+  // The CONFIG sizes are tuned for desktop. On a phone the collapsed row
+  // (4 × 96px + gaps) is wider than the whole screen, and a 440px-tall
+  // expanded row leaves no room for the info bar under it. So: thumbnails
+  // shrink until the row fits the container, and the expanded height is
+  // capped to a share of the viewport on narrow screens.
+  const isNarrow = containerWidth < 640;
+  const totalGap = (projects.length - 1) * CONFIG.THUMB_GAP;
+  const thumbSize = Math.min(
+    CONFIG.COLLAPSED_THUMB_SIZE,
+    Math.floor((containerWidth - totalGap) / projects.length)
+  );
+  const expandedHeight =
+    isNarrow && viewportHeight
+      ? Math.round(Math.min(CONFIG.EXPANDED_HEIGHT, Math.max(200, viewportHeight * 0.4)))
+      : CONFIG.EXPANDED_HEIGHT;
+  // On phones the expanded row sits above center, leaving the lower part
+  // of the screen for the (now stacked, taller) info bar.
+  const centerPercent = isNarrow ? 58 : 50;
+
+  const collapsedWidth = projects.length * thumbSize + totalGap;
   const expandedWidth = containerWidth - CONFIG.EDGE_MARGIN_X * 2;
 
   // ⚠️ Everything below is scroll-driven (recalculated every scroll tick),
@@ -202,7 +222,7 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
   // event retargets the transition mid-flight and the row appears stuck
   // instead of smoothly expanding — that was the original bug.
   const rowWidth = Math.round(lerp(collapsedWidth, expandedWidth, progress));
-  const rowHeight = Math.round(lerp(CONFIG.COLLAPSED_THUMB_SIZE, CONFIG.EXPANDED_HEIGHT, progress));
+  const rowHeight = Math.round(lerp(thumbSize, expandedHeight, progress));
   const rowLeft = Math.round(
     lerp(containerWidth - CONFIG.EDGE_MARGIN_X - collapsedWidth, CONFIG.EDGE_MARGIN_X, progress)
   );
@@ -218,7 +238,7 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
   // percentage term (for the center anchor) with a px term (for the fixed
   // bottom-margin anchor), so the row smoothly rises from the bottom edge
   // to dead-center as you scroll, instead of always being centered.
-  const rowBottomPercent = progress * 50;
+  const rowBottomPercent = progress * centerPercent;
   const rowBottomPxPart =
     (1 - progress) * CONFIG.COLLAPSED_BOTTOM_MARGIN - progress * (rowHeight / 2);
   const rowBottom = `calc(${rowBottomPercent}% + ${rowBottomPxPart}px)`;
@@ -274,6 +294,8 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
                   setActiveId(project.id);
                 }}
                 onMouseLeave={() => setHoveredId(null)}
+                // Touch screens have no hover — a tap selects the card.
+                onClick={() => setActiveId(project.id)}
                 // flex-grow IS allowed a transition — it only changes on
                 // discrete hover events, not on every scroll tick.
                 className="vf-hard relative h-full min-w-0 shrink-0 basis-0 cursor-pointer overflow-hidden rounded-lg border-2 border-outline transition-[flex-grow] duration-500 ease-out"
@@ -319,7 +341,7 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
             completely independent of the row now, so it can never overlap
             it regardless of EXPANDED_HEIGHT or viewport size. ── */}
         <div
-          className="pointer-events-none absolute flex items-end justify-between "
+          className="pointer-events-none absolute flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between"
           style={{
             left: rowLeft + CONFIG.INFO_MARGIN_X,
             width: Math.max(rowWidth - CONFIG.INFO_MARGIN_X * 2, 0),
@@ -330,8 +352,8 @@ export default function RecentProjects({ onProgress }: RecentProjectsProps = {})
         >
           {/* Bottom-left: project name + category + a scramble-revealed blurb */}
           <div className="flex max-w-xl flex-col gap-1 ">
-            <div className="flex items-baseline gap-4">
-              <p className="font-display text-4xl uppercase tracking-tight vf-text-hard-sm">{active.name}</p>
+            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <p className="font-display text-3xl uppercase tracking-tight vf-text-hard-sm sm:text-4xl">{active.name}</p>
               <p className="text-xs uppercase tracking-widest text-ink/60">
                 {active.category} — {active.year}
               </p>

@@ -232,6 +232,17 @@
   }
 }
 
+/* Phones: display type is smaller and wraps onto more lines, so a 6px
+   offset shadow crowds the line below. Scale the offset with the type. */
+@media (max-width: 639px) {
+  .vf-text-hard {
+    text-shadow: 4px 4px 0 var(--color-outline);
+  }
+  .vf-text-hard-masked {
+    filter: drop-shadow(4px 4px 0 var(--color-outline));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
