@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Arc, Bolt, Dot, Sunset, Triangle, Zigzag } from "./Memphis";
 
 interface HeroProps {
   // 0–1 scroll progress of the RecentProjects section below. Pass this
@@ -11,6 +12,10 @@ interface HeroProps {
 }
 
 const HEADING = "Design In Motion";
+
+// Letters from this index on render in the accent hue, so the headline
+// lands on a colored word instead of reading as one flat block of ink.
+const ACCENT_FROM = HEADING.indexOf("Motion");
 
 const DESCRIPTION =
   "VoidFrame is a small studio working at the edge of design and code. We partner with ambitious brands to build interfaces that feel as good as they look — no templates, no filler.";
@@ -52,6 +57,18 @@ const DESCRIPTION_START_DELAY_MS = 300;
 const CHUNK_SIZE = 3;
 
 const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
+
+// Floating Memphis geometry for the landing screen. Positions deliberately
+// avoid two zones: bottom-LEFT (the headline) and bottom-RIGHT (the
+// collapsed RecentProjects thumbnail row, which sits ~80px off the bottom
+// edge). Everything else is fair game.
+const DECOR = [
+  { Shape: Arc, id: "d1", hue: "pink", size: 190, rotate: 12, top: "16%", left: "6%", delay: 120 },
+  { Shape: Dot, id: "d2", hue: "orange", size: 130, rotate: 0, top: "18%", left: "76%", delay: 220 },
+  { Shape: Zigzag, id: "d3", hue: "blue", size: 165, rotate: -8, top: "44%", left: "86%", delay: 320 },
+  { Shape: Bolt, id: "d4", hue: "yellow", size: 120, rotate: -14, top: "50%", left: "2%", delay: 420 },
+  { Shape: Triangle, id: "d5", hue: "green", size: 105, rotate: 18, top: "8%", left: "44%", delay: 520 },
+] as const;
 // ─────────────────────────────────────────────────────────────────────────
 
 export default function Hero({ projectsProgress = 0 }: HeroProps) {
@@ -73,8 +90,51 @@ export default function Hero({ projectsProgress = 0 }: HeroProps) {
   const visible = mounted && !isHiddenByScroll;
 
   return (
-    <div className="absolute bottom-10 left-10 max-w-xl">
-      <h1 className="flex flex-wrap text-6xl font-bold uppercase leading-none tracking-tighter text-black">
+    <>
+      {/* ── Decorative layer ──────────────────────────────────────────────
+          Grid backdrop + floating geometry. Sits at z-0 so the
+          RecentProjects thumbnails (z-5) always paint above it, and fades
+          on the same `visible` flag as the headline so the whole landing
+          screen clears as one gesture. ------------------------------- */}
+      <div
+        className="vf-grid pointer-events-none absolute left-0 top-0 z-0 h-screen w-screen overflow-hidden"
+        style={{
+          opacity: visible ? 1 : 0,
+          transition: `opacity ${DURATION_MS}ms ${EASE}`,
+        }}
+      >
+        {/* Retro sun, bled off the right edge behind everything else. */}
+        <div className="absolute -right-24 top-1/2 -translate-y-1/2">
+          <Sunset size={420} hue="orange" />
+        </div>
+
+        {DECOR.map(({ Shape, id, hue, size, rotate, top, left, delay }) => (
+          <div
+            key={id}
+            className="absolute will-change-transform"
+            style={{
+              top,
+              left,
+              opacity: visible ? 1 : 0,
+              transform: visible ? "translateY(0) scale(1)" : "translateY(28px) scale(0.9)",
+              transitionProperty: "transform, opacity",
+              transitionDuration: `${DURATION_MS}ms`,
+              transitionTimingFunction: EASE,
+              transitionDelay: `${visible ? delay : 0}ms`,
+            }}
+          >
+            <Shape id={id} hue={hue} size={size} rotate={rotate} />
+          </div>
+        ))}
+      </div>
+
+      <div className="absolute bottom-10 left-10 z-20 max-w-4xl">
+        {/* Anton, tight leading, hard black shadow — the display treatment
+            the whole style is built around. */}
+        {/* -masked variant: the per-letter overflow-hidden wrappers clip a
+            text-shadow, so the shadow here is a drop-shadow filter applied
+            to the composited glyphs after masking. */}
+        <h1 className="font-display flex flex-wrap text-[clamp(3.5rem,9vw,8rem)] uppercase leading-[0.85] tracking-tight vf-text-hard-masked">
         {letters.map((letter, i) => {
           // Reveal sweeps left -> right (index order). Hide sweeps in the
           // same visual direction reversed (last letter first), so it
@@ -85,7 +145,9 @@ export default function Hero({ projectsProgress = 0 }: HeroProps) {
           return (
             <span key={i} className="inline-block overflow-hidden">
               <span
-                className="inline-block will-change-transform"
+                className={`inline-block will-change-transform ${
+                  i >= ACCENT_FROM ? "text-green" : ""
+                }`}
                 style={{
                   transform: visible ? "translateY(0%)" : "translateY(110%)",
                   opacity: visible ? 1 : 0,
@@ -105,7 +167,7 @@ export default function Hero({ projectsProgress = 0 }: HeroProps) {
       {/* Description: same reveal/hide motion as the heading, just applied
           per 2–3 word chunk instead of per letter, and starting a beat
           after the heading finishes. */}
-      <p className="mt-1 flex flex-wrap gap-x-1.5 text-sm leading-none text-black/70">
+      <p className="mt-5 flex max-w-xl flex-wrap gap-x-1.5 gap-y-1 text-sm leading-snug text-ink">
         {chunks.map((chunk, i) => {
           const delayIndex = visible ? i : chunks.length - 1 - i;
           const baseDelay = visible ? DESCRIPTION_START_DELAY_MS : 0;
@@ -129,6 +191,7 @@ export default function Hero({ projectsProgress = 0 }: HeroProps) {
           );
         })}
       </p>
-    </div>
+      </div>
+    </>
   );
 }
